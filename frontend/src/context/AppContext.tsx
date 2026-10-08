@@ -14,6 +14,8 @@ export type ModalState =
   | { type: "preferences" }
   | { type: "appearance" }
   | { type: "account" }
+  | { type: "archived" }
+  | { type: "editPhoto" }
   | { type: "info"; conversationId: number }
   | { type: "connections" }
   | { type: "chatSettings"; conversationId: number }
@@ -21,8 +23,8 @@ export type ModalState =
   | { type: "comingSoon"; feature: string }
   | null;
 
-export interface Prefs { notifications: boolean; typingIndicators: boolean; enterToSend: boolean; readReceipts: boolean; screenLock: boolean; relayCalls: boolean; pinReminders: boolean; registrationLock: boolean }
-const DEFAULT_PREFS: Prefs = { notifications: true, typingIndicators: true, enterToSend: true, readReceipts: true, screenLock: false, relayCalls: false, pinReminders: true, registrationLock: false };
+export interface Prefs { notifications: boolean; typingIndicators: boolean; enterToSend: boolean; readReceipts: boolean; screenLock: boolean; relayCalls: boolean; pinReminders: boolean; registrationLock: boolean; language: string }
+const DEFAULT_PREFS: Prefs = { notifications: true, typingIndicators: true, enterToSend: true, readReceipts: true, screenLock: false, relayCalls: false, pinReminders: true, registrationLock: false, language: "zz" };
 
 interface Ctx {
   booting: boolean;
@@ -64,6 +66,9 @@ interface Ctx {
   setTheme: (t: ThemePref) => void;
   prefs: Prefs;
   setPref: <K extends keyof Prefs>(k: K, v: Prefs[K]) => void;
+  archivedIds: number[];
+  setArchived: (id: number, on: boolean) => void;
+  markAllRead: () => void;
   modal: ModalState;
   openModal: (m: ModalState) => void;
   closeModal: () => void;
@@ -101,6 +106,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemePref>("system");
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [modal, setModal] = useState<ModalState>(null);
+  const [archivedIds, setArchivedIds] = useState<number[]>([]);
 
   // Latest-value refs so websocket handlers never see stale state.
   const R = useRef({ me, convs, messages, activeId, prefs });
@@ -134,6 +140,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, [theme]);
+  // Archived chats are a per-user, per-browser preference (kept in localStorage).
+  const archKey = me ? `signal.archived.${me.id}` : null;
+  useEffect(() => {
+    if (!archKey) { setArchivedIds([]); return; } // eslint-disable-line react-hooks/set-state-in-effect -- reset on sign-out
+    try { setArchivedIds(JSON.parse(localStorage.getItem(archKey) ?? "[]")); } catch { setArchivedIds([]); }
+  }, [archKey]);
+  const setArchived = useCallback((id: number, on: boolean) => {
+    setArchivedIds((cur) => {
+      const n = on ? Array.from(new Set([...cur, id])) : cur.filter((x) => x !== id);
+      try { if (archKey) localStorage.setItem(archKey, JSON.stringify(n)); } catch { /* */ }
+      return n;
+    });
+  }, [archKey]);
   const setTheme = useCallback((t: ThemePref) => { setThemeState(t); try { localStorage.setItem(THEME_KEY, t); } catch { /* */ } }, []);
   const setPref = useCallback(<K extends keyof Prefs>(k: K, v: Prefs[K]) => {
     setPrefs((p) => { const n = { ...p, [k]: v }; try { localStorage.setItem(PREFS_KEY, JSON.stringify(n)); } catch { /* */ } return n; });
@@ -174,6 +193,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     patchConv(cid, (c) => (c.unread_count ? { ...c, unread_count: 0 } : c));
     if (!wsSend({ type: "read", conversation_id: cid })) api.markRead(cid).catch(() => {});
   }, [patchConv, wsSend]);
+
+  const markAllRead = useCallback(() => {
+    Object.values(R.current.convs).forEach((c) => { if (c.unread_count) markRead(c.id); });
+  }, [markRead]);
 
   const loadMessages = useCallback(async (id: number) => {
     setMessagesLoading(true);
@@ -491,7 +514,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     activeId, active: activeId ? convs[activeId] ?? null : null, openConversation, closeConversation,
     messages, hasMore, messagesLoading, messagesError, loadOlder, unreadMarker, sendMessage, retryMessage, react, deleteMessage,
     sendTyping, typingNames, isOnline, lastSeenOf, startDirect, createGroup, upsertConversation, wsStatus,
-    toasts, toast, dismissToast, theme, setTheme, prefs, setPref, modal, openModal: setModal, closeModal: () => setModal(null),
+    toasts, toast, dismissToast, theme, setTheme, prefs, setPref, archivedIds, setArchived, markAllRead, modal, openModal: setModal, closeModal: () => setModal(null),
   };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, LogOut, Mail, MessageCircle, MoreVertical, Moon, Palette, Pencil, Phone, Search, SearchX, Settings, Sun, UserRound, Users, WifiOff, X } from "lucide-react";
+import { Camera, Mail, MessageCircle, MoreVertical, Palette, Pencil, Phone, Search, SearchX, UserRound, Users, WifiOff, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { listTime, previewOf } from "@/lib/format";
-import type { SearchResults } from "@/lib/types";
+import type { Conversation, SearchResults } from "@/lib/types";
 import { DEMO_STORIES, loadSeen, saveSeen, type Story } from "@/lib/stories";
 import { ConversationItem } from "./ConversationItem";
+import { RowMenu } from "./RowMenu";
 import { Avatar, Button, ErrorState, IconButton, Spinner } from "./ui";
 
 type Tab = "chats" | "calls" | "stories";
@@ -158,7 +159,8 @@ function StoryViewer({ story, onClose }: { story: Story; onClose: () => void }) 
 }
 
 export function Sidebar() {
-  const { me, conversations, convsLoading, convsError, refreshConversations, activeId, openConversation, openModal, signOut, setTheme, wsStatus, startDirect, isOnline } = useApp();
+  const { me, conversations, convsLoading, convsError, refreshConversations, activeId, openConversation, openModal, wsStatus, startDirect, isOnline, archivedIds, markAllRead, toast } = useApp();
+  const [rowMenu, setRowMenu] = useState<{ conv: Conversation; x: number; y: number } | null>(null);
   const [tab, setTab] = useState<Tab>("chats");
   const [q, setQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -173,7 +175,6 @@ export function Sidebar() {
   const [results, setResults] = useState<SearchResults | null>(null);
   const [searching, setSearching] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread" | "groups">("all");
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -182,7 +183,7 @@ export function Sidebar() {
   const unseenStories = stories.filter((st) => !seen.includes(st.id)).length;
   const viewStory = (st: Story) => { setViewing(st); if (!seen.includes(st.id)) { const n = [...seen, st.id]; setSeen(n); saveSeen(n); } };
   const openSearch = () => { setTab("chats"); setSearchOpen(true); };
-  const closeSearch = () => { setSearchOpen(false); setQ(""); };
+  const closeSearch = () => { setSearchOpen(false); setQ(""); setFilter("all"); };
 
   useEffect(() => { // Ctrl/Cmd+K opens search
     const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openSearch(); } };
@@ -208,9 +209,8 @@ export function Sidebar() {
     return () => document.removeEventListener("mousedown", close);
   }, [menu]);
 
-  const isDark = typeof document !== "undefined" && document.documentElement.dataset.theme === "dark";
   const open = (id: number) => { closeSearch(); openConversation(id); };
-  const visible = conversations.filter((c) => filter === "all" || (filter === "unread" ? c.unread_count > 0 : c.type === "group"));
+  const visible = conversations.filter((c) => (!archivedIds.includes(c.id) || c.unread_count > 0) && (filter === "all" || (filter === "unread" ? c.unread_count > 0 : c.type === "group")));
   const unreadTotal = conversations.filter((c) => c.unread_count > 0).length;
   const noResults = results && !results.conversations.length && !results.contacts.length && !results.messages.length;
   const searchingNow = searchOpen && !!q.trim();
@@ -235,19 +235,15 @@ export function Sidebar() {
           <div className="relative" ref={menuRef}>
             <IconButton label="Menu" onClick={() => setMenu((v) => !v)} active={menu}><MoreVertical size={22} /></IconButton>
             {menu && (
-              <div className="anim-pop absolute right-0 top-11 z-30 w-56 overflow-hidden rounded-2xl bg-sheet py-1.5 shadow-[var(--c-shadow)]" role="menu">
+              <div className="anim-pop absolute right-0 top-11 z-30 w-[260px] overflow-hidden rounded-[22px] bg-sheet py-2 shadow-[var(--c-shadow)]" role="menu">
                 {[
-                  { icon: UserRound, label: "Profile", run: () => openModal({ type: "profile" }) },
-                  { icon: Users, label: "New group", run: () => openModal({ type: "newGroup" }) },
-                  { icon: Search, label: showFilters ? "Hide filters" : "Filter chats", run: () => { if (showFilters) setFilter("all"); setShowFilters((v) => !v); } },
-                  { icon: Settings, label: "Settings", run: () => openModal({ type: "settings" }) },
-                  { icon: isDark ? Sun : Moon, label: isDark ? "Light mode" : "Dark mode", run: () => setTheme(isDark ? "light" : "dark") },
-                  { icon: LogOut, label: "Log out", run: () => signOut(), danger: true },
+                  { label: "Mark all as read", run: () => { markAllRead(); toast({ kind: "info", title: "All chats marked as read" }); } },
+                  { label: "Archived chats", run: () => openModal({ type: "archived" }) },
+                  { label: "Settings", run: () => openModal({ type: "settings" }) },
+                  { label: "Linked devices", run: () => openModal({ type: "comingSoon", feature: "Linked devices" }) },
+                  { label: "Help", run: () => openModal({ type: "comingSoon", feature: "Help" }) },
                 ].map((it) => (
-                  <button key={it.label} role="menuitem" onClick={() => { setMenu(false); it.run(); }}
-                    className={`flex w-full items-center gap-3 px-4 py-2.5 text-[15px] hover:bg-hover ${it.danger ? "text-danger" : ""}`}>
-                    <it.icon size={19} className={it.danger ? "" : "text-muted"} /> {it.label}
-                  </button>
+                  <button key={it.label} role="menuitem" onClick={() => { setMenu(false); it.run(); }} className="block w-full px-6 py-[15px] text-left text-[17px] hover:bg-hover">{it.label}</button>
                 ))}
               </div>
             )}
@@ -255,7 +251,7 @@ export function Sidebar() {
         </>)}
       </div>
 
-      {tab === "chats" && showFilters && conversations.length > 0 && !searchingNow && (
+      {tab === "chats" && searchOpen && conversations.length > 0 && !searchingNow && (
         <div className="flex gap-2 px-3 pb-2 pt-1" role="tablist" aria-label="Filter chats">
           {([["all", "All"], ["unread", unreadTotal ? `Unread · ${unreadTotal}` : "Unread"], ["groups", "Groups"]] as const).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
@@ -329,7 +325,7 @@ export function Sidebar() {
           </div>
         ) : (
           <div className="space-y-0.5 pt-1">
-            {visible.map((c) => <ConversationItem key={c.id} conv={c} selected={c.id === activeId} onClick={() => open(c.id)} />)}
+            {visible.map((c) => <ConversationItem key={c.id} conv={c} selected={c.id === activeId} onClick={() => open(c.id)} onMenu={(p) => setRowMenu({ conv: c, ...p })} />)}
           </div>
         )}
       </div>
@@ -348,6 +344,7 @@ export function Sidebar() {
       {tab === "chats" && !searchOpen && <GetStarted />}
 
       <BottomNav tab={tab} setTab={(t) => { setTab(t); closeSearch(); }} unread={unreadTotal} stories={unseenStories} />
+      {rowMenu && <RowMenu conv={rowMenu.conv} pos={rowMenu} onClose={() => setRowMenu(null)} />}
       {viewing && <StoryViewer story={viewing} onClose={() => setViewing(null)} />}
     </aside>
   );

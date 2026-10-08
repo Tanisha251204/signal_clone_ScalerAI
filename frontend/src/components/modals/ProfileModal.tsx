@@ -1,60 +1,79 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Camera } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
-import { Avatar, Button, Modal } from "../ui";
+import { Avatar, Screen } from "../ui";
+import { AtIcon, BadgeMultiIcon, EditIcon, PersonIcon } from "../signalIcons";
 
-const COLORS = ["#2C6BED", "#E0457B", "#1B998B", "#8E44AD", "#F29D38", "#D64545", "#3D5A80", "#5B8C5A"];
+type Field = "name" | "about" | "username";
 
+function Row({ icon, title, muted, onClick }: { icon: ReactNode; title: string; muted?: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="flex w-full items-center gap-6 px-6 py-[17px] text-left transition hover:bg-hover">
+      <span className="flex w-6 shrink-0 justify-center">{icon}</span>
+      <span className={`min-w-0 truncate text-[17px] leading-tight ${muted ? "text-muted" : ""}`}>{title}</span>
+    </button>
+  );
+}
+
+/** Settings → your profile: photo, name, about, badges, username. Each field edits in its own small dialog and saves immediately. */
 export function ProfileModal() {
-  const { me, setMe, closeModal, toast } = useApp();
-  const [name, setName] = useState(me?.display_name ?? "");
-  const [about, setAbout] = useState(me?.about ?? "");
-  const [username, setUsername] = useState(me?.username ?? "");
-  const [color, setColor] = useState(me?.avatar_color ?? COLORS[0]);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(me?.avatar_url ?? null);
+  const { me, setMe, openModal, toast } = useApp();
+  const [editing, setEditing] = useState<Field | null>(null);
+  const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
   if (!me) return null;
 
-  async function pick(f?: File) {
-    if (!f) return;
-    if (!f.type.startsWith("image/")) return setError("Please choose an image file");
-    try { const r = await api.upload(f); setAvatarUrl(r.url); setError(""); } catch (e) { setError(e instanceof ApiError ? e.message : "Upload failed"); }
-  }
+  const limits: Record<Field, { title: string; max: number; hint: string }> = {
+    name: { title: "Your name", max: 64, hint: "Name" },
+    about: { title: "About", max: 140, hint: "Write something…" },
+    username: { title: "Username", max: 24, hint: "username" },
+  };
+  const current = (f: Field) => (f === "name" ? me.display_name : f === "about" ? me.about ?? "" : me.username ?? "");
+  function start(f: Field) { setEditing(f); setDraft(current(f)); setError(""); }
   async function save() {
-    if (!name.trim()) return setError("Name can't be empty");
+    if (!editing) return;
+    const v = draft.trim().replace(editing === "username" ? /^@/ : /$^/, "");
+    if (editing === "name" && !v) return setError("Name can't be empty");
     setBusy(true); setError("");
     try {
-      const u = await api.updateMe({ display_name: name.trim(), about: about.trim(), username: username.trim(), avatar_color: color, avatar_url: avatarUrl });
-      setMe(u); toast({ kind: "success", title: "Profile updated" }); closeModal();
-    } catch (e) { setError(e instanceof ApiError ? e.message : "Couldn't save"); setBusy(false); }
+      const key = editing === "name" ? "display_name" : editing;
+      const u = await api.updateMe({ [key]: v } as Parameters<typeof api.updateMe>[0]);
+      setMe(u); setEditing(null); toast({ kind: "success", title: "Profile updated" });
+    } catch (e) { setError(e instanceof ApiError ? e.message : "Couldn't save"); }
+    finally { setBusy(false); }
   }
 
-  const input = "h-11 w-full rounded-xl border border-line bg-field px-3.5 text-[15px] outline-none focus:border-accent";
   return (
-    <Modal title="Profile" onClose={closeModal} footer={<><Button variant="ghost" onClick={closeModal}>Cancel</Button><Button loading={busy} onClick={save}>Save</Button></>}>
-      <div className="space-y-4 px-5 pb-4">
-        <div className="flex flex-col items-center gap-3">
-          <div className="relative">
-            <Avatar name={name || me.display_name} color={color} url={avatarUrl} size={96} />
-            <button aria-label="Change photo" onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-outb text-white shadow ring-2 ring-[var(--c-bg)]"><Camera size={16} /></button>
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pick(e.target.files?.[0])} />
-          </div>
-          <div className="flex items-center gap-2">
-            {COLORS.map((c) => <button key={c} aria-label={`Colour ${c}`} onClick={() => { setColor(c); setAvatarUrl(null); }} className={`h-6 w-6 rounded-full ${color === c && !avatarUrl ? "ring-2 ring-offset-2 ring-offset-[var(--c-bg)]" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} />)}
-          </div>
-          {avatarUrl && <button className="text-xs text-accent" onClick={() => setAvatarUrl(null)}>Remove photo</button>}
-        </div>
-        <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Name</span><input value={name} maxLength={64} onChange={(e) => setName(e.target.value)} className={input} /></label>
-        <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">About</span><input value={about} maxLength={140} onChange={(e) => setAbout(e.target.value)} className={input} /></label>
-        <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Username</span><input value={username} maxLength={24} placeholder="optional" onChange={(e) => setUsername(e.target.value)} className={input} /></label>
-        {me.phone && <div><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Phone number</span><p className="rounded-xl bg-field px-3.5 py-3 text-[15px] text-muted">{me.phone}</p></div>}
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+    <Screen label="Profile" title="Profile" onBack={() => openModal({ type: "settings" })}>
+      <div className="flex flex-col items-center gap-3 pb-3 pt-2">
+        <Avatar name={me.display_name} color={me.avatar_color} url={me.avatar_url} size={80} />
+        <button onClick={() => openModal({ type: "editPhoto" })} className="rounded-full bg-accent-soft px-4 py-1.5 text-[14px] font-medium text-accent transition hover:brightness-110">Edit photo</button>
       </div>
-    </Modal>
+      <Row icon={<PersonIcon />} title={me.display_name} onClick={() => start("name")} />
+      <Row icon={<EditIcon />} title={me.about || "About"} muted={!me.about} onClick={() => start("about")} />
+      <Row icon={<BadgeMultiIcon />} title="Badges" onClick={() => openModal({ type: "comingSoon", feature: "Badges" })} />
+      <p className="px-6 pb-4 pt-3 text-[14px] leading-snug text-muted">Your profile and changes to it will be visible to people you message, contacts, and groups.</p>
+      <div className="h-px bg-line" />
+      <Row icon={<AtIcon />} title={me.username ? `@${me.username}` : "Username"} muted={!me.username} onClick={() => start("username")} />
+      <p className="px-6 pb-6 pt-1 text-[14px] leading-snug text-muted">People can now message you using your optional username so you don&apos;t have to give out your phone number.</p>
+
+      {editing && (
+        <div className="anim-fade fixed inset-0 z-[60] flex items-center justify-center bg-[var(--c-overlay)] px-6" onMouseDown={(e) => { if (e.target === e.currentTarget) setEditing(null); }}>
+          <form role="dialog" aria-modal="true" aria-label={limits[editing].title} onSubmit={(e) => { e.preventDefault(); void save(); }} className="anim-pop w-full max-w-[340px] rounded-[28px] bg-sheet px-6 pb-4 pt-6 shadow-[var(--c-shadow)]">
+            <h3 className="text-[22px]">{limits[editing].title}</h3>
+            <input autoFocus value={draft} maxLength={limits[editing].max} onChange={(e) => setDraft(e.target.value)} placeholder={limits[editing].hint} aria-label={limits[editing].title}
+              className="mt-4 h-11 w-full rounded-xl bg-field px-4 text-[16px] outline-none ring-accent focus:ring-2" />
+            {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setEditing(null)} className="rounded-full px-4 py-2 text-[16px] font-medium text-accent hover:bg-hover">Cancel</button>
+              <button type="submit" disabled={busy} className="rounded-full px-4 py-2 text-[16px] font-medium text-accent hover:bg-hover disabled:opacity-50">Save</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </Screen>
   );
 }

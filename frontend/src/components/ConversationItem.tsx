@@ -1,11 +1,14 @@
 "use client";
 
+import { useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import { listTime, previewOf } from "@/lib/format";
 import type { Conversation } from "@/lib/types";
 import { Avatar, ReceiptIcon } from "./ui";
 
-export function ConversationItem({ conv, selected, onClick }: { conv: Conversation; selected: boolean; onClick: () => void }) {
+export function ConversationItem({ conv, selected, onClick, onMenu }: { conv: Conversation; selected: boolean; onClick: () => void; onMenu?: (pos: { x: number; y: number }) => void }) {
+  const hold = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const held = useRef(false);
   const { me, typingNames, isOnline } = useApp();
   const last = conv.last_message;
   const typers = typingNames(conv.id);
@@ -23,7 +26,10 @@ export function ConversationItem({ conv, selected, onClick }: { conv: Conversati
   }
 
   return (
-    <button onClick={onClick} aria-current={selected} data-testid="conversation-item"
+    <button onClick={() => { if (held.current) { held.current = false; return; } onClick(); }} aria-current={selected} data-testid="conversation-item"
+      onContextMenu={(e) => { if (!onMenu) return; e.preventDefault(); onMenu({ x: e.clientX, y: e.clientY }); }}
+      onPointerDown={(e) => { if (!onMenu || e.pointerType === "mouse") return; const { clientX: x, clientY: y } = e; hold.current = setTimeout(() => { held.current = true; onMenu({ x, y }); }, 500); }}
+      onPointerUp={() => clearTimeout(hold.current)} onPointerLeave={() => clearTimeout(hold.current)} onPointerCancel={() => clearTimeout(hold.current)}
       className={`flex w-full items-center gap-5 px-6 py-[17px] text-left transition ${selected ? "bg-selected" : "hover:bg-hover"}`}>
       <Avatar name={conv.title} color={conv.type === "direct" ? conv.peer?.avatar_color ?? conv.avatar_color : conv.avatar_color} url={conv.peer?.avatar_url} online={online} size={48} />
       <div className="min-w-0 flex-1">

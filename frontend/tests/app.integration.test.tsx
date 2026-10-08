@@ -122,8 +122,7 @@ describe("Signal clone UI against live backend", () => {
   it("filter chips narrow the list (Unread / Groups)", async () => {
     const user = await signInAs(/Aarav Sharma/);
     const total = (await screen.findAllByTestId("conversation-item")).length;
-    await user.click(screen.getByRole("button", { name: "Menu" }));
-    await user.click(screen.getByRole("menuitem", { name: "Filter chats" }));
+    await user.click(screen.getByRole("button", { name: "Search" }));
     await user.click(screen.getByRole("tab", { name: /Groups/ }));
     const groups = screen.getAllByTestId("conversation-item");
     expect(groups.length).toBe(3); // Weekend Trek, Project Falcon, Family
@@ -140,8 +139,11 @@ describe("Signal clone UI against live backend", () => {
     await user.type(screen.getByLabelText("Search conversations"), "trek");
     expect((await screen.findAllByText("Weekend Trek 🏔️")).length).toBeGreaterThan(0); // chat hit (+ message hits)
     await user.click(screen.getByLabelText("Close search"));
-    await user.click(screen.getByLabelText("Menu"));
-    await user.click(await screen.findByRole("menuitem", { name: /Log out/ }));
+    await user.click(screen.getByRole("button", { name: "Your profile" })); // logging out = Settings → Account → Delete Account
+    await user.click(await screen.findByRole("button", { name: /^Account/ }));
+    await user.click(await screen.findByRole("button", { name: /Delete Account/ }));
+    await user.type(screen.getByLabelText("Confirm phone number or username"), "+919810000001");
+    await user.click(screen.getByRole("button", { name: "Delete" }));
     expect(await screen.findByRole("button", { name: "Continue" })).toBeInTheDocument(); // back to the welcome screen
     expect(localStorage.getItem("signal.token")).toBeNull();
   });
@@ -313,5 +315,50 @@ describe("Signal clone UI against live backend", () => {
     expect(del).toBeEnabled();
     await user.click(del);
     await waitFor(() => expect(screen.queryByRole("navigation", { name: "Primary" })).not.toBeInTheDocument());
+  });
+
+  it("Appearance → Language lists Signal's languages and remembers the choice", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    await user.click(await screen.findByRole("button", { name: "Your profile" }));
+    await user.click(await screen.findByRole("button", { name: /^Appearance/ }));
+    await user.click(await screen.findByRole("button", { name: /^Language/ }));
+    expect(screen.getAllByRole("radio").length).toBeGreaterThan(60);
+    expect(screen.getByRole("radio", { name: "System default" })).toHaveAttribute("aria-checked", "true");
+    await user.click(screen.getByRole("radio", { name: "Afrikaans" }));
+    expect(screen.getByRole("button", { name: /^Language/ })).toHaveTextContent("Afrikaans");
+  });
+
+  it("Settings → profile page: edit About, and Edit photo shows the default avatars", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    await user.click(await screen.findByRole("button", { name: "Your profile" }));
+    await user.click(await screen.findByRole("button", { name: "Edit your profile" }));
+    expect(await screen.findByRole("button", { name: "Edit photo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Badges/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Building things/ }));
+    await user.clear(screen.getByRole("textbox", { name: "About" }));
+    await user.type(screen.getByRole("textbox", { name: "About" }), "Shipping things");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("button", { name: /Shipping things/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Edit photo" }));
+    expect(within(await screen.findByRole("listbox", { name: "Default avatars" })).getAllByRole("option")).toHaveLength(13);
+    const editor = within(screen.getByRole("dialog", { name: "Edit photo" }));
+    expect(editor.getByRole("button", { name: "Camera" })).toBeInTheDocument();
+    expect(editor.getByRole("button", { name: "Text" })).toBeInTheDocument();
+  });
+
+  it("chat list menu: Mark all as read, Archived chats, Settings, Linked devices, Help; archiving hides a chat", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    await screen.findAllByTestId("conversation-item");
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["Mark all as read", "Archived chats", "Settings", "Linked devices", "Help"]);
+    await user.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
+    await waitFor(() => expect(screen.queryAllByTestId("unread-badge")).toHaveLength(0));
+    const before = screen.getAllByTestId("conversation-item").length;
+    fireEvent.contextMenu(screen.getAllByTestId("conversation-item")[0]);
+    await user.click(await screen.findByRole("menuitem", { name: "Archive chat" }));
+    expect(screen.getAllByTestId("conversation-item")).toHaveLength(before - 1);
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Archived chats" }));
+    expect(within(await screen.findByRole("dialog", { name: "Archived chats" })).getAllByTestId("conversation-item")).toHaveLength(1);
   });
 });

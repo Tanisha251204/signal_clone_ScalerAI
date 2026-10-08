@@ -12,8 +12,10 @@ import { DisappearingModal } from "./modals/DisappearingModal";
 import { InfoModal } from "./modals/InfoModal";
 import { NewChatModal } from "./modals/NewChatModal";
 import { NewGroupModal } from "./modals/NewGroupModal";
+import { EditPhotoModal } from "./modals/EditPhotoModal";
 import { ProfileModal } from "./modals/ProfileModal";
 import { SettingsModal } from "./modals/SettingsModal";
+import { ArchivedScreen } from "./modals/ArchivedScreen";
 import { AccountScreen, AppearanceScreen, SettingsScreen } from "./modals/SettingsScreens";
 import { Button } from "./ui";
 
@@ -59,6 +61,8 @@ export function Messenger() {
       {modal?.type === "preferences" && <SettingsModal />}
       {modal?.type === "appearance" && <AppearanceScreen />}
       {modal?.type === "account" && <AccountScreen />}
+      {modal?.type === "editPhoto" && <EditPhotoModal />}
+      {modal?.type === "archived" && <ArchivedScreen />}
       {modal?.type === "info" && <InfoModal conversationId={modal.conversationId} />}
       {modal?.type === "connections" && <ConnectionsModal />}
       {modal?.type === "chatSettings" && <ChatSettingsModal conversationId={modal.conversationId} />}

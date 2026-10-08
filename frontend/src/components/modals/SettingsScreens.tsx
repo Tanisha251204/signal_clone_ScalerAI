@@ -4,7 +4,9 @@ import { useState, type ReactNode } from "react";
 import { useApp } from "@/context/AppContext";
 import type { ThemePref } from "@/lib/types";
 import { ChevronRight } from "lucide-react";
+import { LANGUAGES } from "@/lib/languages";
 import { Avatar, Screen } from "../ui";
+import { RadioDialog } from "./RadioDialog";
 import { AppearanceIcon, BackupIcon, BellIcon, ChatIcon, DataIcon, DevicesIcon, HeartIcon, HelpIcon, InviteIcon, LockIcon, PaymentIcon, PersonCircleIcon, StoriesIcon } from "../signalIcons";
 
 function Row({ icon, title, sub, onClick, danger }: { icon?: ReactNode; title: string; sub?: string; onClick: () => void; danger?: boolean }) {
@@ -50,40 +52,29 @@ export function SettingsScreen() {
   );
 }
 
-const THEMES: { v: ThemePref; label: string }[] = [{ v: "system", label: "System default" }, { v: "light", label: "Light" }, { v: "dark", label: "Dark" }];
+const THEMES: { value: ThemePref; label: string }[] = [{ value: "system", label: "System default" }, { value: "light", label: "Light" }, { value: "dark", label: "Dark" }];
+const LANGS = [{ value: "zz", label: "System default" }, ...LANGUAGES.map((l) => ({ value: l.code, label: l.name }))];
 
-/** Settings → Appearance. Theme opens a small System default / Light / Dark chooser. */
+/** Settings → Appearance. Language and Theme open single-choice dialogs, like Signal's. */
 export function AppearanceScreen() {
-  const { openModal, theme, setTheme } = useApp();
-  const [picking, setPicking] = useState(false);
+  const { openModal, theme, setTheme, prefs, setPref } = useApp();
+  const [picking, setPicking] = useState<"theme" | "language" | null>(null);
   const soon = (feature: string) => () => openModal({ type: "comingSoon", feature });
-  const themeLabel = THEMES.find((t) => t.v === theme)?.label ?? "System default";
+  const themeLabel = THEMES.find((t) => t.value === theme)?.label ?? "System default";
+  const langLabel = LANGS.find((l) => l.value === prefs.language)?.label ?? "System default";
   return (
     <Screen label="Appearance" title="Appearance" onBack={() => openModal({ type: "settings" })}>
       <div className="pt-2">
-        <Row title="Language" sub="System default" onClick={soon("Language")} />
-        <Row title="Theme" sub={themeLabel} onClick={() => setPicking(true)} />
+        <Row title="Language" sub={langLabel} onClick={() => setPicking("language")} />
+        <Row title="Theme" sub={themeLabel} onClick={() => setPicking("theme")} />
         <Row title="Chat color & wallpaper" onClick={soon("Chat colors and wallpapers")} />
         <Row title="App Icon" onClick={soon("App icons")} />
         <Row title="Message font size" sub="Normal" onClick={soon("Message font size")} />
         <Row title="Navigation bar size" sub="Normal" onClick={soon("Navigation bar size")} />
       </div>
-      {picking && (
-        <div className="anim-fade fixed inset-0 z-[60] flex items-center justify-center bg-[var(--c-overlay)] px-6" onMouseDown={(e) => { if (e.target === e.currentTarget) setPicking(false); }}>
-          <div role="dialog" aria-label="Theme" aria-modal="true" className="anim-pop w-full max-w-[320px] rounded-[28px] bg-sheet px-6 pb-4 pt-6 shadow-[var(--c-shadow)]">
-            <h3 className="mb-3 text-[22px]">Theme</h3>
-            <div role="radiogroup" aria-label="Theme">
-              {THEMES.map((t) => (
-                <button key={t.v} role="radio" aria-checked={theme === t.v} onClick={() => { setTheme(t.v); setPicking(false); }} className="flex w-full items-center gap-4 py-3 text-left text-[17px]">
-                  <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${theme === t.v ? "border-accent" : "border-muted"}`}>{theme === t.v && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}</span>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2 flex justify-end"><button onClick={() => setPicking(false)} className="rounded-full px-3 py-2 text-[16px] font-medium text-accent hover:bg-hover">Cancel</button></div>
-          </div>
-        </div>
-      )}
+      {picking === "theme" && <RadioDialog title="Theme" options={THEMES} value={theme} onClose={() => setPicking(null)} onPick={(v) => { setTheme(v); setPicking(null); }} />}
+      {picking === "language" && <RadioDialog title="Language" options={LANGS} value={prefs.language} onClose={() => setPicking(null)}
+        onPick={(v) => { setPref("language", v); setPicking(null); document.documentElement.lang = v === "zz" ? "en" : v; }} />}
     </Screen>
   );
 }

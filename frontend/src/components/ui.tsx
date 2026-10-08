@@ -44,7 +44,7 @@ export function Spinner({ size = 20, className = "" }: { size?: number; classNam
 }
 
 /** Full-height "page" (back arrow, no dialog chrome) used for chat settings; full-screen on phones, a tall card on desktop. */
-export function Screen({ label, title, onBack, children, footer }: { label: string; title?: string; onBack: () => void; children: ReactNode; footer?: ReactNode }) {
+export function Screen({ label, title, onBack, children, footer, closeIcon }: { label: string; title?: string; onBack: () => void; children: ReactNode; footer?: ReactNode; closeIcon?: boolean }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onBack(); };
     window.addEventListener("keydown", onKey);
@@ -55,7 +55,7 @@ export function Screen({ label, title, onBack, children, footer }: { label: stri
       onMouseDown={(e) => { if (e.target === e.currentTarget) onBack(); }} role="dialog" aria-modal="true" aria-label={label}>
       <div className="anim-slide sm:anim-pop flex h-full w-full flex-col overflow-hidden bg-chat sm:h-[min(100%,860px)] sm:max-w-md sm:rounded-2xl sm:shadow-[var(--c-shadow)]">
         <div className="flex h-14 shrink-0 items-center gap-2 px-2">
-          <IconButton label="Back" onClick={onBack}><ArrowLeft size={24} /></IconButton>
+          <IconButton label={closeIcon ? "Close" : "Back"} onClick={onBack}>{closeIcon ? <X size={24} /> : <ArrowLeft size={24} />}</IconButton>
           {title && <h2 className="text-[20px] font-medium">{title}</h2>}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
