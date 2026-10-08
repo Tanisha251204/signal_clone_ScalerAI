@@ -215,3 +215,13 @@ def test_attachment_upload(client, aarav, priya):
     m = client.post(f"/api/conversations/{cid}/messages", headers=ha, json={
         "attachment_url": up_["url"], "attachment_name": "a.txt", "attachment_type": "text/plain", "attachment_size": 5}).json()
     assert m["attachment"]["name"] == "a.txt"
+
+
+def test_active_content_uploads_are_not_served_as_web_pages(client, aarav):
+    _, ha, _ = aarav
+    r = client.post("/api/uploads", headers=ha, files={"file": ("evil.html", b"<script>alert(1)</script>", "text/html")})
+    assert r.status_code == 200 and r.json()["url"].endswith(".bin")
+    served = client.get(r.json()["url"])
+    assert "text/html" not in served.headers["content-type"]
+    assert client.post("/api/uploads", headers=ha, files={"file": ("big.bin", b"x" * (10 * 1024 * 1024 + 1), "application/octet-stream")}).status_code == 413
+    assert client.post("/api/uploads", files={"file": ("a.txt", b"x", "text/plain")}).status_code == 401

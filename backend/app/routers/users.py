@@ -13,6 +13,8 @@ from ..security import USERNAME_RE, current_user, find_user_by_identifier
 from ..services import broadcast_presence, user_out
 
 router = APIRouter(prefix="/api", tags=["users"])
+# Active-content types must never be served back as web pages from the API origin.
+UNSAFE_EXTENSIONS = {".html", ".htm", ".xhtml", ".svg", ".xml", ".js", ".mjs", ".php"}
 
 
 @router.get("/me")
@@ -100,6 +102,8 @@ async def upload(file: UploadFile = File(...), user: M.User = Depends(current_us
         raise HTTPException(413, "File too large (max 10 MB)")
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     ext = Path(file.filename or "").suffix[:10].lower()
+    if ext in UNSAFE_EXTENSIONS:
+        ext = ".bin"
     name = f"{uuid.uuid4().hex}{ext}"
     (UPLOAD_DIR / name).write_bytes(data)
     return {"url": f"/uploads/{name}", "name": file.filename or name, "type": file.content_type or "application/octet-stream", "size": len(data)}
