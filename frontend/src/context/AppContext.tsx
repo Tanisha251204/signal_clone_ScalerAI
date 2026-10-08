@@ -13,6 +13,7 @@ export type ModalState =
   | { type: "settings" }
   | { type: "preferences" }
   | { type: "appearance" }
+  | { type: "account" }
   | { type: "info"; conversationId: number }
   | { type: "connections" }
   | { type: "chatSettings"; conversationId: number }
@@ -20,8 +21,8 @@ export type ModalState =
   | { type: "comingSoon"; feature: string }
   | null;
 
-export interface Prefs { notifications: boolean; typingIndicators: boolean; enterToSend: boolean; readReceipts: boolean; screenLock: boolean; relayCalls: boolean }
-const DEFAULT_PREFS: Prefs = { notifications: true, typingIndicators: true, enterToSend: true, readReceipts: true, screenLock: false, relayCalls: false };
+export interface Prefs { notifications: boolean; typingIndicators: boolean; enterToSend: boolean; readReceipts: boolean; screenLock: boolean; relayCalls: boolean; pinReminders: boolean; registrationLock: boolean }
+const DEFAULT_PREFS: Prefs = { notifications: true, typingIndicators: true, enterToSend: true, readReceipts: true, screenLock: false, relayCalls: false, pinReminders: true, registrationLock: false };
 
 interface Ctx {
   booting: boolean;

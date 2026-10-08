@@ -300,4 +300,18 @@ describe("Signal clone UI against live backend", () => {
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
     expect(screen.getByRole("button", { name: /^Theme/ })).toHaveTextContent("Dark");
   });
+
+  it("profile → Settings → Account → Delete Account asks for the number, then logs out", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    await user.click(await screen.findByRole("button", { name: "Your profile" }));
+    await user.click(await screen.findByRole("button", { name: /^Account/ }));
+    expect(await screen.findByText("Signal PIN")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Delete Account/ }));
+    const del = screen.getByRole("button", { name: "Delete" });
+    expect(del).toBeDisabled();
+    await user.type(screen.getByLabelText("Confirm phone number or username"), "+919810000001");
+    expect(del).toBeEnabled();
+    await user.click(del);
+    await waitFor(() => expect(screen.queryByRole("navigation", { name: "Primary" })).not.toBeInTheDocument());
+  });
 });

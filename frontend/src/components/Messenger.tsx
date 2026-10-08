@@ -14,7 +14,7 @@ import { NewChatModal } from "./modals/NewChatModal";
 import { NewGroupModal } from "./modals/NewGroupModal";
 import { ProfileModal } from "./modals/ProfileModal";
 import { SettingsModal } from "./modals/SettingsModal";
-import { AppearanceScreen, SettingsScreen } from "./modals/SettingsScreens";
+import { AccountScreen, AppearanceScreen, SettingsScreen } from "./modals/SettingsScreens";
 import { Button } from "./ui";
 
 export function Messenger() {
@@ -58,6 +58,7 @@ export function Messenger() {
       {modal?.type === "settings" && <SettingsScreen />}
       {modal?.type === "preferences" && <SettingsModal />}
       {modal?.type === "appearance" && <AppearanceScreen />}
+      {modal?.type === "account" && <AccountScreen />}
       {modal?.type === "info" && <InfoModal conversationId={modal.conversationId} />}
       {modal?.type === "connections" && <ConnectionsModal />}
       {modal?.type === "chatSettings" && <ChatSettingsModal conversationId={modal.conversationId} />}
