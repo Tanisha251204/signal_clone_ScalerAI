@@ -58,7 +58,7 @@ export function AuthScreen() {
 
   switch (step) {
     case "welcome":
-      return <WelcomeStep onContinue={() => setStep("permissions")} onRestore={() => toast({ kind: "info", title: "Not available in this demo", body: "Restore and transfer are placeholders." })} />;
+      return <WelcomeStep onTerms={() => toast({ kind: "info", title: "Terms & Privacy Policy", body: "Not included in this demo." })} onContinue={() => setStep("permissions")} onRestore={() => toast({ kind: "info", title: "Not available in this demo", body: "Restore and transfer are placeholders." })} />;
     case "permissions":
       return <PermissionsStep onNext={askNotifications} onSkip={() => setStep("phone")} />;
     case "phone":

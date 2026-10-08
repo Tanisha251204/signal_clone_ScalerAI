@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Camera, ChevronDown, Keyboard, Loader2, Phone, UserRound, Users } from "lucide-react";
 import { OTP_HINT } from "@/lib/config";
 import { Avatar, Button } from "../ui";
-import { Illustration } from "./Illustration";
 
 export const COLORS = ["#2C6BED", "#E0457B", "#1B998B", "#8E44AD", "#F29D38", "#D64545", "#3D5A80", "#5B8C5A"];
 export const COUNTRIES = [
@@ -35,13 +34,17 @@ const nextBtn = (onClick: () => void, disabled = false, label = "Next", loading 
   <Button variant="tonal" onClick={onClick} disabled={disabled} loading={loading} className="h-11 min-w-[96px]">{label}</Button>
 );
 
-export function WelcomeStep({ onContinue, onRestore }: { onContinue: () => void; onRestore: () => void }) {
+export function WelcomeStep({ onContinue, onRestore, onTerms }: { onContinue: () => void; onRestore: () => void; onTerms: () => void }) {
   return (
     <div className="flex h-full w-full justify-center overflow-y-auto bg-bg">
-      <div className="anim-fade flex min-h-full w-full max-w-[440px] flex-col items-center px-6 pb-8 pt-10 text-center">
-        <div className="flex flex-1 items-center text-accent"><Illustration className="w-[min(70vw,300px)]" /></div>
-        <h1 className="mt-8 text-[28px] font-bold leading-tight">Private conversations,<br />wherever you go.</h1>
-        <p className="mt-6 text-[13px] font-medium text-muted">Demo build · not affiliated with Signal<br />Messages are end-to-end encrypted (simulated)</p>
+      <div className="anim-fade flex min-h-full w-full max-w-[440px] flex-col items-center px-6 pb-8 pt-8 text-center">
+        <div className="flex flex-1 items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/welcome.webp" alt="" width={420} height={540} className="h-auto w-[min(72vw,300px)] select-none" draggable={false} />
+        </div>
+        <h1 className="mt-6 text-[26px] font-bold leading-[1.25]">Take privacy with you.<br />Be yourself in every message.</h1>
+        <p className="mt-9 text-[14px] font-semibold leading-snug text-fg/90">Demo build · not affiliated with Signal<br />
+          <button onClick={onTerms} className="font-semibold hover:underline">Terms &amp; Privacy Policy</button></p>
         <div className="mt-8 flex w-full flex-col gap-3">
           <Button variant="tonal" onClick={onContinue} className="h-12 w-full text-[15px]">Continue</Button>
           <Button variant="tonal2" onClick={onRestore} className="h-12 w-full text-[15px]">Restore or transfer</Button>
