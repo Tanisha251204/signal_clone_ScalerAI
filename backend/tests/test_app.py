@@ -266,3 +266,8 @@ def test_custom_disappearing_timer_bounds(client, aarav, priya):
     assert patch({"disappear_after": 28 * 86400 + 1}).status_code == 400
     assert patch({"disappear_after": -5}).status_code == 400
     patch({"clear_disappear": True})
+
+
+def test_health_answers_head_for_uptime_monitors(client):
+    assert client.get("/api/health").status_code == 200
+    assert client.head("/api/health").status_code == 200

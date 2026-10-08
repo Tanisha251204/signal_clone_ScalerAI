@@ -62,6 +62,6 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])  # HEAD: uptime monitors (e.g. UptimeRobot free) probe with HEAD
 def health():
     return {"status": "ok", "online_users": len(manager.online_ids())}
