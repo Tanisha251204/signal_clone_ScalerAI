@@ -18,8 +18,13 @@ services:
         value: "1"
       - key: FIXED_OTP
         value: "123456"
-    # SQLite lives on the instance disk. On the free plan the disk is ephemeral (data resets on redeploy/restart
-    # and the demo seed is re-created). For durable data attach a persistent disk (paid) and set:
+    # DATABASE: by default the app uses SQLite on the instance disk, which is EPHEMERAL on the free plan
+    # (data resets on every redeploy/restart and the demo seed is re-created).
+    # For a durable database kept OUTSIDE this service, add an env var in the Render dashboard (Environment tab):
+    #   DATABASE_URL = <Neon / Supabase / any Postgres connection string>   (free Neon: https://neon.com)
+    # The app detects the database type from this URL (postgres:// and postgresql:// both work). Do not commit it.
+    # NOTE: uploaded attachments are still files on this disk (UPLOAD_DIR); they need object storage to be durable.
+    # Alternative with a paid persistent disk:
     #   DATABASE_URL=sqlite:////var/data/signal.db   UPLOAD_DIR=/var/data/uploads
     # disk:
     #   name: data

@@ -39,16 +39,34 @@ export function fileSize(n: number | null): string {
   return `${(n / 1048576).toFixed(1)} MB`;
 }
 
+/** Disappearing-message presets, in the order the Signal screen lists them (null = off). */
 export const TIMER_OPTIONS: { value: number | null; label: string }[] = [
   { value: null, label: "Off" },
-  { value: 30, label: "30 seconds" },
-  { value: 300, label: "5 minutes" },
-  { value: 3600, label: "1 hour" },
-  { value: 28800, label: "8 hours" },
-  { value: 86400, label: "1 day" },
+  { value: 2419200, label: "4 weeks" },
   { value: 604800, label: "1 week" },
+  { value: 86400, label: "1 day" },
+  { value: 28800, label: "8 hours" },
+  { value: 3600, label: "1 hour" },
+  { value: 300, label: "5 minutes" },
+  { value: 30, label: "30 seconds" },
 ];
-export const timerLabel = (s: number | null) => TIMER_OPTIONS.find((o) => o.value === s)?.label ?? `${s}s`;
+export const MAX_TIMER = 2419200; // 4 weeks (the server enforces the same limit)
+export const TIMER_UNITS = [
+  { label: "seconds", size: 1 }, { label: "minutes", size: 60 }, { label: "hours", size: 3600 }, { label: "days", size: 86400 }, { label: "weeks", size: 604800 },
+] as const;
+/** Largest unit that divides the value evenly, e.g. 90 -> {amount: 90, size: 1}, 7200 -> {amount: 2, size: 3600}. */
+export function splitTimer(secs: number) {
+  const u = [...TIMER_UNITS].reverse().find((x) => secs % x.size === 0) ?? TIMER_UNITS[0];
+  return { amount: secs / u.size, size: u.size };
+}
+export function timerLabel(s: number | null) {
+  if (s === null) return "Off";
+  const preset = TIMER_OPTIONS.find((o) => o.value === s);
+  if (preset) return preset.label;
+  const { amount, size } = splitTimer(s);
+  const unit = TIMER_UNITS.find((u) => u.size === size)!.label;
+  return `${amount} ${amount === 1 ? unit.slice(0, -1) : unit}`;
+}
 
 export function previewOf(m: { body: string; is_deleted: boolean; attachment: { type: string | null } | null; kind: string }): string {
   if (m.is_deleted) return "This message was deleted";

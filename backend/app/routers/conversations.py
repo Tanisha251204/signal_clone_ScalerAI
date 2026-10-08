@@ -19,7 +19,16 @@ from ..ws_manager import manager
 
 router = APIRouter(prefix="/api", tags=["conversations"])
 GROUP_COLORS = ["#2C6BED", "#E0457B", "#1B998B", "#8E44AD", "#F29D38", "#D64545", "#3D5A80", "#5B8C5A"]
-TIMER_LABELS = {30: "30 seconds", 300: "5 minutes", 3600: "1 hour", 28800: "8 hours", 86400: "1 day", 604800: "1 week"}
+MAX_TIMER = 28 * 86400  # 4 weeks, the longest disappearing-message timer
+
+
+def timer_text(secs: int) -> str:
+    """'30 seconds', '5 minutes', '1 day', '2 weeks', ... (largest unit that divides evenly)."""
+    for unit, size in (("week", 604800), ("day", 86400), ("hour", 3600), ("minute", 60), ("second", 1)):
+        if secs % size == 0:
+            n = secs // size
+            return f"{n} {unit}{'' if n == 1 else 's'}"
+    return f"{secs} seconds"
 
 
 def _ensure_contact(db: Session, owner: int, other: int) -> None:
@@ -93,11 +102,11 @@ async def update_conversation(cid: int, body: ConversationUpdate, user: M.User =
         if conv.type == "group" and mem.role != "admin":
             raise HTTPException(403, "Only group admins can change disappearing messages")
         secs = None if body.clear_disappear else body.disappear_after
-        if secs is not None and secs not in TIMER_LABELS:
-            raise HTTPException(400, "Unsupported timer")
+        if secs is not None and not 1 <= secs <= MAX_TIMER:
+            raise HTTPException(400, "Timer must be between 1 second and 4 weeks")
         if secs != conv.disappear_after:
             conv.disappear_after = secs
-            changed_msgs.append(f"{user.display_name} set disappearing messages to {TIMER_LABELS[secs]}" if secs
+            changed_msgs.append(f"{user.display_name} set disappearing messages to {timer_text(secs)}" if secs
                                 else f"{user.display_name} turned off disappearing messages")
     db.commit()
     for text in changed_msgs:

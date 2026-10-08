@@ -253,3 +253,16 @@ def test_client_id_is_idempotent(client, aarav, priya):
     a = client.post(f"/api/conversations/{conv['id']}/messages", headers=ha, json=body).json()
     b = client.post(f"/api/conversations/{conv['id']}/messages", headers=ha, json=body).json()
     assert a["id"] == b["id"]
+
+
+def test_custom_disappearing_timer_bounds(client, aarav, priya):
+    """4 weeks and custom values are accepted; 0 and anything beyond 4 weeks is rejected."""
+    _, ha, _ = aarav
+    cid = client.post("/api/conversations/direct", headers=ha, json={"user_id": priya[2]["id"]}).json()["id"]
+    patch = lambda body: client.patch(f"/api/conversations/{cid}", headers=ha, json=body)
+    assert patch({"disappear_after": 28 * 86400}).json()["disappear_after"] == 2419200
+    assert patch({"disappear_after": 90}).json()["disappear_after"] == 90
+    assert patch({"disappear_after": 0}).status_code == 400
+    assert patch({"disappear_after": 28 * 86400 + 1}).status_code == 400
+    assert patch({"disappear_after": -5}).status_code == 400
+    patch({"clear_disappear": True})

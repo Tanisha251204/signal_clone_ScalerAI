@@ -115,3 +115,5 @@ input:focus-visible, textarea:focus-visible { outline: none; }
 .chat-pattern {
   background-color: var(--c-chat);
 }
+
+@keyframes story-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }

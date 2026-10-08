@@ -13,6 +13,8 @@ export type ModalState =
   | { type: "settings" }
   | { type: "info"; conversationId: number }
   | { type: "connections" }
+  | { type: "chatSettings"; conversationId: number }
+  | { type: "disappearing"; conversationId: number }
   | { type: "comingSoon"; feature: string }
   | null;
 
@@ -478,7 +480,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("focus", onFocus);
   }, [markRead]);
 
-  const conversations = useMemo(() => Object.values(convs).sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1)), [convs]);
+  const conversations = useMemo(() => Object.values(convs).sort((a, b) => (a.updated_at < b.updated_at ? 1 : a.updated_at > b.updated_at ? -1 : b.id - a.id)), [convs]);
   const setMe = useCallback((u: User) => setMeState(u), []);
 
   const value: Ctx = {

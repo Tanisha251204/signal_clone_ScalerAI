@@ -2,11 +2,12 @@
  * Renders the REAL app (AppProvider + AppShell) against a RUNNING backend (default http://localhost:8000).
  * Verifies the UI <-> REST <-> WebSocket contract end to end: login, list, chat, send, realtime, typing, unread.
  */
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/AppShell";
 import { AppProvider } from "@/context/AppContext";
+import { api } from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 const WS = API.replace(/^http/, "ws");
@@ -164,14 +165,73 @@ describe("Signal clone UI against live backend", () => {
     expect(await screen.findByText(/No chats yet/, {}, { timeout: 8000 })).toBeInTheDocument();
   });
 
-  it("bottom navigation switches between Chats, Calls and Stories", async () => {
+  it("bottom navigation switches between Chats, Calls and Stories; the unviewed-story badge clears once viewed", async () => {
+    localStorage.removeItem("signal.storiesSeen");
     const user = await signInAs(/Aarav Sharma/);
+    const stories = screen.getByRole("button", { name: /Stories/ });
+    expect(within(stories).getByText("1")).toBeInTheDocument(); // red badge: one unviewed story
     await user.click(screen.getByRole("button", { name: /Calls/ }));
     expect(await screen.findByText("No recent calls")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Stories/ }));
-    expect(await screen.findByText("No recent stories")).toBeInTheDocument();
+    await user.click(stories);
+    expect(await screen.findByText("Recent updates")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Story from Priya Patel" }));
+    expect(await screen.findByRole("dialog", { name: "Story from Priya Patel" })).toBeInTheDocument();
+    await user.click(screen.getByLabelText("Close story"));
+    expect(within(screen.getByRole("button", { name: /Stories/ })).queryByText("1")).toBeNull(); // badge cleared
+    expect(JSON.parse(localStorage.getItem("signal.storiesSeen")!)).toContain("demo-trek");
     await user.click(screen.getByRole("button", { name: /Chats/ }));
     expect((await screen.findAllByTestId("conversation-item")).length).toBeGreaterThanOrEqual(7);
+    localStorage.removeItem("signal.storiesSeen");
+  });
+
+  it("chat menu → Chat settings → Disappearing messages: presets, custom time, Save, and back", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    const karan = (await screen.findAllByTestId("conversation-item")).find((i) => within(i).queryByText("Karan Singh"))!;
+    await user.click(karan);
+    await user.click(await screen.findByLabelText("Conversation menu"));
+    const items = screen.getAllByRole("menuitem").map((m) => m.textContent);
+    expect(items).toEqual(expect.arrayContaining(["All media", "Chat settings", "Search", "Add to home screen", "Mute notifications"]));
+    await user.click(screen.getByRole("menuitem", { name: "Chat settings" }));
+
+    const settings = await screen.findByRole("dialog", { name: "Chat settings" });
+    expect(within(settings).getByTestId("settings-title")).toHaveTextContent("Karan Singh");
+    for (const t of ["Video", "Audio", "Mute", "Search", "Disappearing messages", "Nickname", "Chat color & wallpaper", "Sounds & notifications", "Phone contact info", "View safety number", "Block"])
+      expect(within(settings).getByText(t)).toBeInTheDocument();
+    expect(within(settings).getByText("Off")).toBeInTheDocument();
+
+    await user.click(within(settings).getByText("Disappearing messages"));
+    const picker = await screen.findByRole("dialog", { name: "Disappearing messages" });
+    const labels = within(picker).getAllByRole("radio").map((r) => r.textContent);
+    expect(labels).toEqual(["Off", "4 weeks", "1 week", "1 day", "8 hours", "1 hour", "5 minutes", "30 seconds", "Custom time"]);
+    expect(within(picker).getByRole("radio", { name: "Off" })).toHaveAttribute("aria-checked", "true");
+
+    await user.click(within(picker).getByRole("radio", { name: "1 hour" }));
+    await user.click(within(picker).getByRole("button", { name: "Save" }));
+    const back = await screen.findByRole("dialog", { name: "Chat settings" }); // returns to the settings page
+    await waitFor(() => expect(within(back).getByText("1 hour")).toBeInTheDocument());
+
+    await user.click(within(back).getByText("Disappearing messages")); // custom time: 90 seconds
+    const picker2 = await screen.findByRole("dialog", { name: "Disappearing messages" });
+    expect(within(picker2).getByRole("radio", { name: "1 hour" })).toHaveAttribute("aria-checked", "true");
+    await user.click(within(picker2).getByRole("radio", { name: "Custom time" }));
+    const amount = within(picker2).getByLabelText("Custom amount");
+    await user.clear(amount); await user.type(amount, "90");
+    await user.selectOptions(within(picker2).getByLabelText("Custom unit"), "seconds");
+    await user.click(within(picker2).getByRole("button", { name: "Save" }));
+    const back2 = await screen.findByRole("dialog", { name: "Chat settings" });
+    await waitFor(() => expect(within(back2).getByText("90 seconds")).toBeInTheDocument());
+
+    await user.click(within(back2).getByText("Disappearing messages")); // out-of-range custom value is blocked, then restore Off
+    const picker3 = await screen.findByRole("dialog", { name: "Disappearing messages" });
+    const amt = within(picker3).getByLabelText("Custom amount");
+    await user.clear(amt); await user.type(amt, "5");
+    await user.selectOptions(within(picker3).getByLabelText("Custom unit"), "weeks");
+    expect(within(picker3).getByRole("alert")).toHaveTextContent("1 second to 4 weeks");
+    expect(within(picker3).getByRole("button", { name: "Save" })).toBeDisabled();
+    await user.click(within(picker3).getByRole("radio", { name: "Off" }));
+    await user.click(within(picker3).getByRole("button", { name: "Save" }));
+    const back3 = await screen.findByRole("dialog", { name: "Chat settings" });
+    await waitFor(() => expect(within(back3).getByText("Off")).toBeInTheDocument());
   });
 
   it("Get started cards can be dismissed and stay dismissed", async () => {
@@ -199,5 +259,33 @@ describe("Signal clone UI against live backend", () => {
     await user.click(row);
     await user.click(await screen.findByRole("button", { name: /Name not verified/ }, { timeout: 5000 }));
     expect(await screen.findByText(/Connections are people you/)).toBeInTheDocument();
+  });
+  it("dragging a file onto the chat shows the drop overlay, attaches it, and sends it", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    const karan = (await screen.findAllByTestId("conversation-item")).find((i) => within(i).queryByText("Karan Singh"))!;
+    await user.click(karan);
+    const chat = await screen.findByRole("region", { name: /Chat with Karan Singh/ });
+    const file = new File(["hello drag and drop"], `dropped-${Date.now()}.txt`, { type: "text/plain" });
+    // jsdom's File/FormData can't be sent as multipart by Node fetch, so stub only the upload call; the real multipart upload is covered by the live smoke test.
+    const spy = vi.spyOn(api, "upload").mockResolvedValue({ url: `/uploads/${"a".repeat(32)}.txt`, name: file.name, type: file.type, size: file.size });
+    fireEvent.dragEnter(chat, { dataTransfer: { types: ["Files"], files: [file] } });
+    expect(await screen.findByTestId("drop-overlay")).toBeInTheDocument();
+    fireEvent.drop(chat, { dataTransfer: { types: ["Files"], files: [file] } });
+    expect(screen.queryByTestId("drop-overlay")).toBeNull();
+    expect(await screen.findByLabelText("Remove attachment", {}, { timeout: 5000 })).toBeInTheDocument(); // uploaded + previewed
+    await user.click(await screen.findByTestId("send"));
+    const list = screen.getByTestId("message-list");
+    expect(await within(list).findByText(file.name, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledWith(file);
+    spy.mockRestore();
+  });
+
+  it("plain text drags do not trigger the drop overlay", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    const karan = (await screen.findAllByTestId("conversation-item")).find((i) => within(i).queryByText("Karan Singh"))!;
+    await user.click(karan);
+    const chat = await screen.findByRole("region", { name: /Chat with Karan Singh/ });
+    fireEvent.dragEnter(chat, { dataTransfer: { types: ["text/plain"], files: [] } });
+    expect(screen.queryByTestId("drop-overlay")).toBeNull();
   });
 });

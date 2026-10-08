@@ -2,7 +2,8 @@ import os
 import tempfile
 
 _tmp = tempfile.mkdtemp()
-os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
+# Default: throwaway SQLite. Set TEST_DATABASE_URL (an EMPTY Postgres database) to run the same suite against Postgres.
+os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL") or f"sqlite:///{_tmp}/test.db"
 os.environ["UPLOAD_DIR"] = f"{_tmp}/uploads"
 os.environ["SEED_DEMO_DATA"] = "1"
 

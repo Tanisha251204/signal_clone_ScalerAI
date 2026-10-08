@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { X, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, X, Loader2, AlertTriangle } from "lucide-react";
 import { assetUrl } from "@/lib/api";
 import { initials } from "@/lib/format";
 import type { MsgStatus } from "@/lib/types";
@@ -41,6 +41,28 @@ export function IconButton({ label, onClick, children, className = "", active, d
 
 export function Spinner({ size = 20, className = "" }: { size?: number; className?: string }) {
   return <Loader2 size={size} className={`animate-spin text-accent ${className}`} aria-label="Loading" />;
+}
+
+/** Full-height "page" (back arrow, no dialog chrome) used for chat settings; full-screen on phones, a tall card on desktop. */
+export function Screen({ label, title, onBack, children, footer }: { label: string; title?: string; onBack: () => void; children: ReactNode; footer?: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onBack(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onBack]);
+  return (
+    <div className="anim-fade fixed inset-0 z-50 flex items-stretch justify-center bg-[var(--c-overlay)] sm:items-center sm:p-4"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onBack(); }} role="dialog" aria-modal="true" aria-label={label}>
+      <div className="anim-slide sm:anim-pop flex h-full w-full flex-col overflow-hidden bg-bg sm:h-[min(100%,860px)] sm:max-w-md sm:rounded-2xl sm:shadow-[var(--c-shadow)]">
+        <div className="flex h-14 shrink-0 items-center gap-2 px-2">
+          <IconButton label="Back" onClick={onBack}><ArrowLeft size={24} /></IconButton>
+          {title && <h2 className="text-[20px] font-medium">{title}</h2>}
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        {footer}
+      </div>
+    </div>
+  );
 }
 
 export function Modal({ title, onClose, children, footer, wide }: {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, ChevronRight, Clock, Info, Lock, MessageCircle, MoreVertical, Phone, Timer, UserRound, Users, Video } from "lucide-react";
+import { ArrowDown, ArrowLeft, ChevronRight, FileUp, Lock, MessageCircle, MoreVertical, Phone, Timer, UserRound, Users, Video } from "lucide-react";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { dayLabel, lastSeen, timerLabel } from "@/lib/format";
@@ -12,6 +12,9 @@ import { Avatar, ErrorState, IconButton, Spinner, TypingDots } from "./ui";
 
 const GAP_MS = 5 * 60 * 1000;
 
+/** True only for drags that carry files (so selecting/dragging text never shows the overlay). */
+const hasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
+
 export function ChatView() {
   const { active: conv, conversations, messages, hasMore, messagesLoading, messagesError, loadOlder, openConversation, closeConversation, unreadMarker, me, typingNames, isOnline, lastSeenOf, openModal, wsStatus } = useApp();
   const [reply, setReply] = useState<Message | null>(null);
@@ -19,6 +22,9 @@ export function ChatView() {
   const [atBottom, setAtBottom] = useState(true);
   const [newCount, setNewCount] = useState(0);
   const [focusSignal, setFocusSignal] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [dropped, setDropped] = useState<{ file: File; n: number } | null>(null);
+  const dragDepth = useRef(0);
   const [contactIds, setContactIds] = useState<Set<number> | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const prevHeight = useRef<number | null>(null);
@@ -96,7 +102,21 @@ export function ChatView() {
   });
 
   return (
-    <section className="flex h-full min-w-0 flex-1 flex-col bg-chat" aria-label={`Chat with ${conv.title}`}>
+    <section className="relative flex h-full min-w-0 flex-1 flex-col bg-chat" aria-label={`Chat with ${conv.title}`}
+      onDragEnter={(e) => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth.current += 1; setDragging(true); }}
+      onDragOver={(e) => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+      onDragLeave={(e) => { if (!hasFiles(e)) return; dragDepth.current = Math.max(0, dragDepth.current - 1); if (dragDepth.current === 0) setDragging(false); }}
+      onDrop={(e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault(); dragDepth.current = 0; setDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file) setDropped((d) => ({ file, n: (d?.n ?? 0) + 1 }));
+      }}>
+      {dragging && (
+        <div data-testid="drop-overlay" className="anim-fade pointer-events-none absolute inset-2 z-30 flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-accent bg-[color-mix(in_srgb,var(--c-bg)_88%,transparent)] text-accent">
+          <FileUp size={44} strokeWidth={1.5} /><p className="text-[17px] font-medium text-fg">Drop to attach</p><p className="text-sm text-muted">Images and files up to 10 MB</p>
+        </div>
+      )}
       <header className="flex items-center gap-1 bg-chat px-2 py-2 shadow-[0_1px_0_var(--c-line)] md:px-4">
         <IconButton label="Back to chats" onClick={closeConversation} className="md:hidden"><ArrowLeft size={24} /></IconButton>
         <button onClick={() => openModal({ type: "info", conversationId: conv.id })} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl py-0.5 text-left transition hover:opacity-80" aria-label="Conversation details">
@@ -114,10 +134,17 @@ export function ChatView() {
           <IconButton label="Conversation menu" onClick={() => setMenu((v) => !v)} active={menu}><MoreVertical size={20} /></IconButton>
           {menu && (<>
             <div className="fixed inset-0 z-20" onClick={() => setMenu(false)} />
-            <div className="anim-pop absolute right-0 top-11 z-30 w-56 overflow-hidden rounded-2xl border border-line bg-bg py-1.5 shadow-[var(--c-shadow)]" role="menu">
-              <button role="menuitem" onClick={() => { setMenu(false); openModal({ type: "info", conversationId: conv.id }); }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-hover"><Info size={17} className="text-muted" /> {conv.type === "group" ? "Group info" : "Contact info"}</button>
-              <button role="menuitem" onClick={() => { setMenu(false); openModal({ type: "info", conversationId: conv.id }); }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-hover"><Clock size={17} className="text-muted" /> Disappearing messages</button>
-                            <button role="menuitem" onClick={() => { setMenu(false); closeConversation(); }} className="hidden w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-hover md:flex"><ArrowLeft size={17} className="text-muted" /> Close chat</button>
+            <div className="anim-pop absolute right-0 top-11 z-30 w-[260px] overflow-hidden rounded-[22px] bg-sheet py-2 shadow-[var(--c-shadow)]" role="menu">
+              {([
+                ["All media", () => openModal({ type: "comingSoon", feature: "All media" })],
+                ["Chat settings", () => openModal({ type: "chatSettings", conversationId: conv.id })],
+                ["Search", () => { if (!window.matchMedia?.("(min-width: 768px)").matches) closeConversation(); setTimeout(() => window.dispatchEvent(new Event("signal:open-search")), 60); }],
+                ["Add to home screen", () => openModal({ type: "comingSoon", feature: "Add to home screen" })],
+                ["Mute notifications", () => openModal({ type: "comingSoon", feature: "Mute notifications" })],
+              ] as const).map(([label, run]) => (
+                <button key={label} role="menuitem" onClick={() => { setMenu(false); run(); }} className="block w-full px-6 py-[15px] text-left text-[17px] hover:bg-hover">{label}</button>
+              ))}
+              <button role="menuitem" onClick={() => { setMenu(false); closeConversation(); }} className="hidden w-full px-6 py-[15px] text-left text-[17px] hover:bg-hover md:block">Close chat</button>
             </div>
           </>)}
         </div>
@@ -172,7 +199,7 @@ export function ChatView() {
         )}
       </div>
       {wsStatus !== "open" && <div className="bg-[color-mix(in_srgb,#f29d38_18%,transparent)] px-4 py-1 text-center text-xs font-medium text-[#b8741a]" role="status">Reconnecting… live updates are paused</div>}
-      <Composer key={conv.id} conv={conv} replyTo={reply} onClearReply={() => setReply(null)} focusSignal={focusSignal} />
+      <Composer key={conv.id} conv={conv} replyTo={reply} onClearReply={() => setReply(null)} focusSignal={focusSignal} incomingFile={dropped} />
     </section>
   );
 }

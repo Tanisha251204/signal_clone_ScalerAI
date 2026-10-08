@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Bell, Camera, ChevronDown, Keyboard, Loader2, Phone, UserRound, Users } from "lucide-react";
+import { ArrowLeft, Bell, Camera, ChevronDown, CircleUserRound, Keyboard, Loader2, Phone, UserRound, Users } from "lucide-react";
 import { OTP_HINT } from "@/lib/config";
 import { Avatar, Button } from "../ui";
 import { Illustration } from "./Illustration";
@@ -52,18 +52,19 @@ export function WelcomeStep({ onContinue, onRestore }: { onContinue: () => void;
 }
 
 export function PermissionsStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
+  // Plain coloured glyphs (no round tile), like the real permissions screen: yellow bell, outlined contact, outlined phone.
   const rows = [
-    { icon: Bell, title: "Notifications", body: "Get notified when new messages arrive." },
-    { icon: UserRound, title: "Contacts", body: "Find people you know. Your contacts stay private in this demo." },
-    { icon: Phone, title: "Phone calls", body: "Make registering easier and enable additional calling features." },
+    { icon: <Bell size={34} strokeWidth={1.6} fill="#f6cf4d" stroke="#e0a82e" />, title: "Notifications", body: "Get notified when new messages arrive." },
+    { icon: <CircleUserRound size={34} strokeWidth={1.6} stroke="#aebde8" />, title: "Contacts", body: "Find people you know. Your contacts stay private in this demo." },
+    { icon: <Phone size={34} strokeWidth={1.6} stroke="#aebde8" fill="#cfd8f3" />, title: "Phone calls", body: "Make registering easier and enable additional calling features." },
   ];
   return (
     <Frame title="Allow permissions" subtitle="To help you message people you know, the app will request these permissions."
-      footer={<><button onClick={onSkip} className="px-2 py-2 text-[15px] font-medium text-fg hover:opacity-80">Not now</button>{nextBtn(onNext)}</>}>
-      <ul className="space-y-7">
-        {rows.map(({ icon: Icon, title, body }) => (
+      footer={<div className="ml-auto flex items-center gap-3"><button onClick={onSkip} className="px-3 py-2 text-[15px] font-medium text-fg hover:opacity-80">Not now</button>{nextBtn(onNext)}</div>}>
+      <ul className="space-y-6">
+        {rows.map(({ icon, title, body }) => (
           <li key={title} className="flex items-start gap-4">
-            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent"><Icon size={21} /></span>
+            <span aria-hidden="true" className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center">{icon}</span>
             <div><p className="text-[16px] font-medium">{title}</p><p className="mt-0.5 text-[14px] leading-snug text-muted">{body}</p></div>
           </li>
         ))}
@@ -242,19 +243,14 @@ export function ProfileStep({ busy, error, onBack, onFinish }: {
   const submit = () => ok && onFinish({ first: first.trim(), last: last.trim(), color });
   const field = "block rounded-lg bg-field px-4 pb-2 pt-2 focus-within:ring-2 ring-accent";
   return (
-    <Frame onBack={onBack} title="Set up your profile" subtitle="Profiles are visible to people you message, contacts and groups."
+    <Frame onBack={onBack} title="Set up your profile" subtitle={<>Profiles are visible to people you message, contacts and groups. <span className="text-accent">Learn more</span></>}
       footer={<><span />{nextBtn(submit, !ok || busy, "Next", busy)}</>}>
-      <div className="flex flex-col items-center gap-3">
-        <button aria-label="Change avatar colour" onClick={() => setColor(COLORS[(COLORS.indexOf(color) + 1) % COLORS.length])} className="relative">
-          <Avatar name={`${first} ${last}`.trim() || "?"} color={color} size={92} />
+      <div className="flex justify-center">
+        <button aria-label="Profile photo" onClick={() => setColor(COLORS[(COLORS.indexOf(color) + 1) % COLORS.length])} className="relative">
+          {first.trim() ? <Avatar name={`${first} ${last}`.trim()} color={color} size={92} />
+            : <span className="flex h-[92px] w-[92px] items-center justify-center rounded-full bg-[#f3ecfb]"><UserRound size={44} strokeWidth={1.5} className="text-[#7b4fd6]" /></span>}
           <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-btn2 text-btn2-fg"><Camera size={16} /></span>
         </button>
-        <div className="flex gap-2" role="radiogroup" aria-label="Avatar colour">
-          {COLORS.map((c) => (
-            <button type="button" key={c} role="radio" aria-checked={color === c} aria-label={`Colour ${c}`} onClick={() => setColor(c)}
-              className={`h-5 w-5 rounded-full transition ${color === c ? "ring-2 ring-offset-2 ring-offset-[var(--c-bg)]" : ""}`} style={{ background: c, ["--tw-ring-color" as string]: c }} />
-          ))}
-        </div>
       </div>
       <div className="mt-6 space-y-3">
         <label className={field}><span className="block text-[12px] text-muted">First name (required)</span>

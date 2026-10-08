@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, LogOut, Pencil, ShieldCheck, Timer, UserPlus, X, Crown } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
-import { TIMER_OPTIONS, timerLabel } from "@/lib/format";
+import { timerLabel } from "@/lib/format";
 import type { Member, User } from "@/lib/types";
 import { Avatar, Button, Modal, Spinner } from "../ui";
 import { MemberPicker } from "./NewGroupModal";
@@ -34,8 +34,7 @@ export function InfoModal({ conversationId }: { conversationId: number }) {
   };
 
   const rename = () => run("rename", async () => { if (name.trim() && name.trim() !== conv.name) upsertConversation(await api.updateConversation(conv.id, { name: name.trim() })); setEditing(false); });
-  const setTimer = (v: number | null) => run("timer", async () => { upsertConversation(await api.updateConversation(conv.id, v === null ? { clear_disappear: true } : { disappear_after: v })); });
-  const addMembers = () => run("add", async () => { upsertConversation(await api.addMembers(conv.id, [...sel])); setAdding(false); setSel(new Set()); toast({ kind: "success", title: "Members added" }); });
+    const addMembers = () => run("add", async () => { upsertConversation(await api.addMembers(conv.id, [...sel])); setAdding(false); setSel(new Set()); toast({ kind: "success", title: "Members added" }); });
   const remove = (m: Member) => run(`rm${m.id}`, async () => { await api.removeMember(conv.id, m.id); toast({ kind: "success", title: `${m.display_name} removed` }); setMenuFor(null); });
   const role = (m: Member, r: "admin" | "member") => run(`role${m.id}`, async () => { upsertConversation(await api.setRole(conv.id, m.id, r)); setMenuFor(null); });
   const leave = () => run("leave", async () => { await api.removeMember(conv.id, me.id); closeModal(); toast({ kind: "info", title: `You left "${conv.title}"` }); });
@@ -77,9 +76,8 @@ export function InfoModal({ conversationId }: { conversationId: number }) {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3"><Timer size={20} className="text-muted" /><div><p className="text-[15px] font-medium">Disappearing messages</p>
               <p className="text-[13px] text-muted">{isGroup && !admin ? "Only admins can change this" : conv.disappear_after ? `Messages disappear after ${timerLabel(conv.disappear_after)}` : "New messages stay until deleted"}</p></div></div>
-            <select aria-label="Disappearing messages timer" disabled={busy === "timer" || (isGroup && !admin)} value={conv.disappear_after ?? ""} onChange={(e) => setTimer(e.target.value === "" ? null : Number(e.target.value))}
-              className="h-9 rounded-lg border border-line bg-field px-2 text-sm outline-none focus:border-accent disabled:opacity-50">
-              {TIMER_OPTIONS.map((o) => <option key={String(o.value)} value={o.value ?? ""}>{o.label}</option>)}</select>
+            <button aria-label="Change disappearing messages timer" onClick={() => openModal({ type: "disappearing", conversationId: conv.id })}
+              className="h-9 rounded-lg bg-btn2 px-3 text-sm font-medium text-btn2-fg hover:brightness-110">{timerLabel(conv.disappear_after)}</button>
           </div>
           <p className="mt-3 flex items-center gap-2 text-xs text-muted"><ShieldCheck size={14} /> Messages in this chat are end-to-end encrypted (simulated).</p>
         </div>

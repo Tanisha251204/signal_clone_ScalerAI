@@ -6,7 +6,9 @@ import { useApp } from "@/context/AppContext";
 import { ChatView } from "./ChatView";
 import { Sidebar } from "./Sidebar";
 import { ComingSoonModal } from "./modals/ComingSoonModal";
+import { ChatSettingsModal } from "./modals/ChatSettingsModal";
 import { ConnectionsModal } from "./modals/ConnectionsModal";
+import { DisappearingModal } from "./modals/DisappearingModal";
 import { InfoModal } from "./modals/InfoModal";
 import { NewChatModal } from "./modals/NewChatModal";
 import { NewGroupModal } from "./modals/NewGroupModal";
@@ -55,6 +57,8 @@ export function Messenger() {
       {modal?.type === "settings" && <SettingsModal />}
       {modal?.type === "info" && <InfoModal conversationId={modal.conversationId} />}
       {modal?.type === "connections" && <ConnectionsModal />}
+      {modal?.type === "chatSettings" && <ChatSettingsModal conversationId={modal.conversationId} />}
+      {modal?.type === "disappearing" && <DisappearingModal conversationId={modal.conversationId} />}
       {modal?.type === "comingSoon" && <ComingSoonModal feature={modal.feature} />}
     </div>
   );

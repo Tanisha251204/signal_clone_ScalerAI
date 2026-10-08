@@ -1,15 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, CircleDashed, LogOut, Mail, MessageCircle, MoreVertical, Moon, Pencil, Phone, Search, SearchX, Settings, Sun, UserRound, Users, WifiOff, X } from "lucide-react";
+import { Camera, LogOut, Mail, MessageCircle, MoreVertical, Moon, Palette, Pencil, Phone, Search, SearchX, Settings, Sun, UserRound, Users, WifiOff, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { listTime, previewOf } from "@/lib/format";
 import type { SearchResults } from "@/lib/types";
+import { DEMO_STORIES, loadSeen, saveSeen, type Story } from "@/lib/stories";
 import { ConversationItem } from "./ConversationItem";
 import { Avatar, Button, ErrorState, IconButton, Spinner } from "./ui";
 
 type Tab = "chats" | "calls" | "stories";
+
+/** Stacked-cards icon used for Stories: a front card with a second card peeking out behind it (top-left). */
+function StoriesIcon({ size = 22, fill = "none", className }: { size?: number; fill?: string; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="8" y="7" width="12.5" height="14.5" rx="3" fill={fill} />
+      <path d="M16.5 3.5H7.2A3.2 3.2 0 0 0 4 6.7v9.1" />
+    </svg>
+  );
+}
 const TITLES: Record<Tab, string> = { chats: "Signal", calls: "Calls", stories: "Stories" };
 const NOTIF_KEY = "signal.notifBanner";
 const GS_KEY = "signal.getStarted";
@@ -46,7 +57,7 @@ function NotificationBanner() {
   );
 }
 
-/** Dismissible "Get started" shortcuts (new group, invite, add photo) shown above the bottom navigation. */
+/** Dismissible "Get started" shortcuts (new group, invite, add photo, chat color) shown above the bottom navigation. */
 function GetStarted() {
   const { me, openModal, toast } = useApp();
   const [gone, setGone] = useState<string[] | null>(null);
@@ -62,6 +73,7 @@ function GetStarted() {
     { id: "group", label: "New group", icon: Users, bg: "#fbf6e8", run: () => openModal({ type: "newGroup" }) },
     { id: "invite", label: "Invite friends", icon: Mail, bg: "#eaf3e9", run: () => { navigator.clipboard?.writeText(window.location.origin); toast({ kind: "success", title: "Invite link copied", body: window.location.origin }); } },
     ...(me?.avatar_url ? [] : [{ id: "photo", label: "Add a photo", icon: UserRound, bg: "#f1eaf8", run: () => openModal({ type: "profile" }) }]),
+    { id: "color", label: "Chat color", icon: Palette, bg: "#e4eff2", run: () => openModal({ type: "comingSoon", feature: "Chat colors" }) },
   ].filter((c) => !gone.includes(c.id));
   if (!cards.length) return null;
   return (
@@ -79,22 +91,68 @@ function GetStarted() {
   );
 }
 
-function BottomNav({ tab, setTab, unread }: { tab: Tab; setTab: (t: Tab) => void; unread: number }) {
-  const items: { id: Tab; label: string; icon: typeof MessageCircle }[] = [
-    { id: "chats", label: "Chats", icon: MessageCircle }, { id: "calls", label: "Calls", icon: Phone }, { id: "stories", label: "Stories", icon: CircleDashed },
+function BottomNav({ tab, setTab, unread, stories }: { tab: Tab; setTab: (t: Tab) => void; unread: number; stories: number }) {
+  const items: { id: Tab; label: string; icon: React.ComponentType<{ size?: number; fill?: string; className?: string }>; badge: number; badgeClass: string }[] = [
+    { id: "chats", label: "Chats", icon: MessageCircle, badge: unread, badgeClass: "bg-outb" },
+    { id: "calls", label: "Calls", icon: Phone, badge: 0, badgeClass: "" },
+    { id: "stories", label: "Stories", icon: StoriesIcon, badge: stories, badgeClass: "bg-[#e5484d]" },
   ];
   return (
-    <nav className="flex border-t border-line bg-sidebar px-2 pb-2 pt-2" aria-label="Primary">
-      {items.map(({ id, label, icon: Icon }) => (
-        <button key={id} onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined} className="group flex flex-1 flex-col items-center gap-1 py-0.5">
-          <span className={`relative flex h-8 w-16 items-center justify-center rounded-full transition ${tab === id ? "bg-accent-soft text-accent" : "text-muted group-hover:bg-hover"}`}>
-            <Icon size={22} fill={tab === id && id === "chats" ? "currentColor" : "none"} />
-            {id === "chats" && unread > 0 && <span className="absolute right-2 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-outb px-1 text-[10px] font-bold text-white">{unread > 99 ? "99+" : unread}</span>}
-          </span>
-          <span className={`text-[12px] ${tab === id ? "font-medium text-fg" : "text-muted"}`}>{label}</span>
+    <nav className="flex border-t border-line bg-sidebar px-2 pb-2 pt-1.5" aria-label="Primary">
+      {items.map(({ id, label, icon: Icon, badge, badgeClass }) => {
+        const on = tab === id;
+        return (
+          <button key={id} onClick={() => setTab(id)} aria-current={on ? "page" : undefined} className="flex flex-1 flex-col items-center gap-0.5 py-1">
+            <span className={`relative flex h-8 w-14 items-center justify-center ${on ? "text-fg" : "text-muted"}`}>
+              <Icon size={26} fill={on ? "currentColor" : "none"} />
+              {badge > 0 && <span className={`absolute right-0.5 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold leading-none text-white ${badgeClass}`}>{badge > 99 ? "99+" : badge}</span>}
+            </span>
+            <span className={`text-[12px] ${on ? "font-semibold text-fg" : "text-muted"}`}>{label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Stories tab: "My story" + recent updates from contacts, and a tiny full-screen viewer. */
+function StoriesTab({ stories, seen, open }: { stories: Story[]; seen: string[]; open: (s: Story) => void }) {
+  const { me, openModal } = useApp();
+  return (
+    <div className="pb-4 pt-1">
+      <button onClick={() => openModal({ type: "comingSoon", feature: "Stories" })} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left hover:bg-hover">
+        {me && <Avatar name={me.display_name} color={me.avatar_color} url={me.avatar_url} size={52} />}
+        <div><p className="text-[16px] font-medium">My story</p><p className="text-[14px] text-muted">Tap to add a story</p></div>
+      </button>
+      <h3 className="px-4 pb-1 pt-4 text-[14px] font-medium text-muted">Recent updates</h3>
+      {stories.length === 0 && <p className="px-4 py-3 text-sm text-muted">No recent stories</p>}
+      {stories.map((st) => (
+        <button key={st.id} onClick={() => open(st)} aria-label={`Story from ${st.author}`} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left hover:bg-hover">
+          <span className={`rounded-full p-[3px] ${seen.includes(st.id) ? "ring-2 ring-line" : "ring-2 ring-accent"}`}><Avatar name={st.author} color={st.color} size={46} /></span>
+          <div><p className="text-[16px] font-medium">{st.author}</p><p className="text-[14px] text-muted">{st.ago}</p></div>
         </button>
       ))}
-    </nav>
+    </div>
+  );
+}
+
+function StoryViewer({ story, onClose }: { story: Story; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 5000);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => { clearTimeout(t); window.removeEventListener("keydown", onKey); };
+  }, [onClose]);
+  return (
+    <div role="dialog" aria-modal="true" aria-label={`Story from ${story.author}`} onClick={onClose} className="anim-fade fixed inset-0 z-[60] flex flex-col text-white" style={{ background: story.bg }}>
+      <div className="mx-3 mt-3 h-1 overflow-hidden rounded-full bg-white/30"><div className="h-full origin-left bg-white" style={{ animation: "story-progress 5s linear forwards" }} /></div>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <Avatar name={story.author} color={story.color} size={38} />
+        <div className="flex-1"><p className="text-[15px] font-medium">{story.author}</p><p className="text-[12px] opacity-80">{story.ago}</p></div>
+        <button aria-label="Close story" onClick={(e) => { e.stopPropagation(); onClose(); }} className="rounded-full p-2 hover:bg-white/15"><X size={22} /></button>
+      </div>
+      <div className="flex flex-1 items-center justify-center px-8 text-center"><p className="whitespace-pre-line text-[28px] font-semibold leading-snug">{story.text}</p></div>
+    </div>
   );
 }
 
@@ -103,6 +161,14 @@ export function Sidebar() {
   const [tab, setTab] = useState<Tab>("chats");
   const [q, setQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [seen, setSeen] = useState<string[]>([]);
+  const [viewing, setViewing] = useState<Story | null>(null);
+  useEffect(() => { // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from localStorage
+    setSeen(loadSeen());
+    const openFromElsewhere = () => { setTab("chats"); setSearchOpen(true); }; // chat menu / chat settings → "Search"
+    window.addEventListener("signal:open-search", openFromElsewhere);
+    return () => window.removeEventListener("signal:open-search", openFromElsewhere);
+  }, []);
   const [results, setResults] = useState<SearchResults | null>(null);
   const [searching, setSearching] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -110,6 +176,9 @@ export function Sidebar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const stories = DEMO_STORIES.filter((st) => st.author !== me?.display_name);
+  const unseenStories = stories.filter((st) => !seen.includes(st.id)).length;
+  const viewStory = (st: Story) => { setViewing(st); if (!seen.includes(st.id)) { const n = [...seen, st.id]; setSeen(n); saveSeen(n); } };
   const openSearch = () => { setTab("chats"); setSearchOpen(true); };
   const closeSearch = () => { setSearchOpen(false); setQ(""); };
 
@@ -206,11 +275,7 @@ export function Sidebar() {
             <Button variant="tonal" onClick={() => openModal({ type: "comingSoon", feature: "Calls" })}>Start a call</Button>
           </div>
         ) : tab === "stories" ? (
-          <div className="flex flex-col items-center gap-3 px-8 py-20 text-center text-muted">
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent"><CircleDashed size={28} /></span>
-            <p className="text-[16px] font-medium text-fg">No recent stories</p><p className="text-sm">Stories are a placeholder in this demo.</p>
-            <Button variant="tonal" onClick={() => openModal({ type: "comingSoon", feature: "Stories" })}>Add a story</Button>
-          </div>
+          <StoriesTab stories={stories} seen={seen} open={viewStory} />
         ) : searchingNow ? (
           searching && !results ? <div className="flex justify-center py-10"><Spinner /></div> : noResults ? (
             <div className="flex flex-col items-center gap-2 px-6 py-14 text-center text-muted">
@@ -279,7 +344,8 @@ export function Sidebar() {
 
       {tab === "chats" && !searchOpen && <GetStarted />}
 
-      <BottomNav tab={tab} setTab={(t) => { setTab(t); closeSearch(); }} unread={unreadTotal} />
+      <BottomNav tab={tab} setTab={(t) => { setTab(t); closeSearch(); }} unread={unreadTotal} stories={unseenStories} />
+      {viewing && <StoryViewer story={viewing} onClose={() => setViewing(null)} />}
     </aside>
   );
 }
