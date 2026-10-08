@@ -53,11 +53,11 @@ export function ProfileModal() {
         <button onClick={() => openModal({ type: "editPhoto" })} className="rounded-full bg-accent-soft px-4 py-1.5 text-[14px] font-medium text-accent transition hover:brightness-110">Edit photo</button>
       </div>
       <Row icon={<PersonIcon />} title={me.display_name} onClick={() => start("name")} />
-      <Row icon={<EditIcon />} title={me.about || "About"} muted={!me.about} onClick={() => start("about")} />
+      <Row icon={<EditIcon />} title={me.about || "About"} onClick={() => start("about")} />
       <Row icon={<BadgeMultiIcon />} title="Badges" onClick={() => openModal({ type: "comingSoon", feature: "Badges" })} />
       <p className="px-6 pb-4 pt-3 text-[14px] leading-snug text-muted">Your profile and changes to it will be visible to people you message, contacts, and groups.</p>
       <div className="h-px bg-line" />
-      <Row icon={<AtIcon />} title={me.username ? `@${me.username}` : "Username"} muted={!me.username} onClick={() => start("username")} />
+      <Row icon={<AtIcon />} title={me.username ? `@${me.username}` : "Username"} onClick={() => start("username")} />
       <p className="px-6 pb-6 pt-1 text-[14px] leading-snug text-muted">People can now message you using your optional username so you don&apos;t have to give out your phone number.</p>
 
       {editing && (
