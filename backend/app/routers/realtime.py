@@ -1,4 +1,5 @@
 import json
+import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
@@ -12,6 +13,7 @@ from ..services import (
 from ..ws_manager import manager
 
 router = APIRouter()
+log = logging.getLogger("signal.ws")
 
 
 @router.websocket("/ws")
@@ -56,7 +58,7 @@ async def ws_endpoint(ws: WebSocket, token: str = ""):
     except WebSocketDisconnect:
         pass
     except Exception:
-        pass
+        log.exception("websocket handler crashed for user %s", uid)
     finally:
         manager.remove(uid, ws)
         if not manager.is_online(uid):

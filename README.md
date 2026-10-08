@@ -1,6 +1,6 @@
 # Signal Clone — Secure Messaging Platform
 
-A Signal-inspired messaging app: register with a phone number or username (mocked OTP), chat one-on-one or in groups in
+A Signal-inspired messaging app (UI modelled on Signal for Android): register with a phone number or username (mocked OTP), chat one-on-one or in groups in
 **real time**, with delivery/read receipts, typing indicators, search, reactions, replies, attachments, disappearing
 messages and dark mode. Built for the Scaler SDE Fullstack assignment.
 
@@ -10,8 +10,8 @@ messages and dark mode. Built for the Scaler SDE Fullstack assignment.
 
 | | |
 |---|---|
-| Frontend | _add deployed URL_ |
-| Backend API | _add deployed URL_ (`/docs` for Swagger) |
+| Frontend | https://signal-clone-scaler-ai.vercel.app |
+| Backend API | https://signal-clone-api-3vcd.onrender.com (Swagger docs at /docs) |
 | OTP for every account | **`123456`** |
 
 **Seeded demo accounts** (tap one on the login screen, then enter `123456`):
@@ -25,6 +25,22 @@ messages and dark mode. Built for the Scaler SDE Fullstack assignment.
 | Karan Singh | `+919810000005` | |
 | Meera Nair | `+919810000006` | admin of "Family" |
 | Vikram Rao / Ananya Das | `+919810000007` / `+919810000008` | not in Aarav's contacts — find them via *New message → search* |
+
+### Screenshots (real headless-Chromium captures of this build)
+
+| Welcome | Verification code | Chat list | Conversation |
+|---|---|---|---|
+| ![](docs/screenshots/01-welcome.png) | ![](docs/screenshots/02-verification-code.png) | ![](docs/screenshots/03-chat-list.png) | ![](docs/screenshots/04-conversation.png) |
+
+| Group chat | Light mode | Get started cards | "Name not verified" sheet |
+|---|---|---|---|
+| ![](docs/screenshots/05-group.png) | ![](docs/screenshots/06-light-mode.png) | ![](docs/screenshots/08-get-started.png) | ![](docs/screenshots/09-connections.png) |
+
+![Desktop two-pane layout](docs/screenshots/07-desktop.png)
+
+**Onboarding flow** (mirrors Signal's): welcome → permissions → phone number (+ confirm dialog) → 6-digit code →
+*new users:* PIN → profile (first/last name) → app. Returning users skip straight in after the code. The PIN is a UI-only
+placeholder (not stored). Bottom navigation: **Chats** (real), **Calls** and **Stories** (mocked placeholders).
 
 **Try real-time:** open the app in two browsers (or one normal + one private window), sign in as Aarav and Priya,
 open their chat and watch messages, typing indicators, ticks and online status update live.
@@ -243,3 +259,7 @@ ephemeral, so the DB/uploads reset on restart and the demo seed is re-created. A
 - Uploads are stored on local disk and served unauthenticated by (unguessable) URL.
 - Notifications are in-app toasts plus browser notifications when the tab is hidden and permission is granted.
 - Calls, voice messages, stories and linked devices are placeholders.
+- Any signed-in user can look up any other user by name, number or username (no privacy/discoverability settings), and the WebSocket token travels in the query string (browsers cannot set headers on WebSockets) — both acceptable for a demo, not for production.
+- No rate limiting or OTP attempt limits (the OTP is fixed by design); real SMS verification would plug in at `/api/auth/request-otp` + `/login`.
+- Conversation list builds each row with several queries (N+1); fine for demo-sized data, would need batching/denormalised `last_message_id` at scale.
+- Uploaded files and (on the free Render plan) all data are lost on restart — see Deployment.

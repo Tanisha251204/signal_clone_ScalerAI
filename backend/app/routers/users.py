@@ -1,3 +1,4 @@
+import re
 import uuid
 from pathlib import Path
 
@@ -97,13 +98,19 @@ def get_user(user_id: int, user: M.User = Depends(current_user), db: Session = D
 
 @router.post("/uploads")
 async def upload(file: UploadFile = File(...), user: M.User = Depends(current_user)):
-    data = await file.read()
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(413, "File too large (max 10 MB)")
+    chunks, size = [], 0
+    while chunk := await file.read(1024 * 1024):  # stream: never buffer more than the limit + 1 MB
+        size += len(chunk)
+        if size > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "File too large (max 10 MB)")
+        chunks.append(chunk)
+    data = b"".join(chunks)
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    ext = Path(file.filename or "").suffix[:10].lower()
+    ext = Path(file.filename or "").suffix.lower()
     if ext in UNSAFE_EXTENSIONS:
         ext = ".bin"
+    elif not re.fullmatch(r"\.[a-z0-9]{1,9}", ext):
+        ext = ""
     name = f"{uuid.uuid4().hex}{ext}"
     (UPLOAD_DIR / name).write_bytes(data)
     return {"url": f"/uploads/{name}", "name": file.filename or name, "type": file.content_type or "application/octet-stream", "size": len(data)}

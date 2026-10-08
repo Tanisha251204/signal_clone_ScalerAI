@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Lock, MessageCircle } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { ChatView } from "./ChatView";
 import { Sidebar } from "./Sidebar";
 import { ComingSoonModal } from "./modals/ComingSoonModal";
+import { ConnectionsModal } from "./modals/ConnectionsModal";
 import { InfoModal } from "./modals/InfoModal";
 import { NewChatModal } from "./modals/NewChatModal";
 import { NewGroupModal } from "./modals/NewGroupModal";
@@ -15,14 +16,11 @@ import { Button } from "./ui";
 
 export function Messenger() {
   const { activeId, conversations, openConversation, closeConversation, modal, openModal } = useApp();
-  const searchRef = useRef<HTMLInputElement>(null);
 
   // keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); searchRef.current?.focus(); }
-      else if (e.altKey && e.key.toLowerCase() === "n") { e.preventDefault(); openModal({ type: "newChat" }); }
+      if (e.altKey && e.key.toLowerCase() === "n") { e.preventDefault(); openModal({ type: "newChat" }); }
       else if (e.altKey && e.key.toLowerCase() === "g") { e.preventDefault(); openModal({ type: "newGroup" }); }
       else if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && conversations.length) {
         e.preventDefault();
@@ -38,7 +36,7 @@ export function Messenger() {
   return (
     <div className="flex h-full w-full bg-bg">
       <div className={`${activeId ? "hidden md:flex" : "flex"} h-full w-full md:w-auto`}>
-        <Sidebar searchRef={searchRef} />
+        <Sidebar />
       </div>
       <main className={`${activeId ? "flex" : "hidden md:flex"} h-full min-w-0 flex-1`}>
         {activeId ? <ChatView key={activeId} /> : (
@@ -56,6 +54,7 @@ export function Messenger() {
       {modal?.type === "profile" && <ProfileModal />}
       {modal?.type === "settings" && <SettingsModal />}
       {modal?.type === "info" && <InfoModal conversationId={modal.conversationId} />}
+      {modal?.type === "connections" && <ConnectionsModal />}
       {modal?.type === "comingSoon" && <ComingSoonModal feature={modal.feature} />}
     </div>
   );

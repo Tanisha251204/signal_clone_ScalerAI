@@ -87,6 +87,8 @@ class Message(Base):
     __table_args__ = (
         CheckConstraint("kind IN ('text','system')", name="ck_msg_kind"),
         Index("ix_msg_conv_id", "conversation_id", "id"),
+        # idempotent sends: a retried request with the same client_id can never create a second row
+        Index("uq_msg_client", "conversation_id", "sender_id", "client_id", unique=True),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

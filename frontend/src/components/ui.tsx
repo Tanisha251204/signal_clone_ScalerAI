@@ -54,7 +54,7 @@ export function Modal({ title, onClose, children, footer, wide }: {
   return (
     <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[var(--c-overlay)] sm:items-center sm:p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} role="dialog" aria-modal="true" aria-label={title}>
-      <div className={`anim-slide sm:anim-pop flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl bg-bg shadow-[var(--c-shadow)] sm:rounded-2xl ${wide ? "sm:max-w-xl" : "sm:max-w-md"}`}>
+      <div className={`anim-slide sm:anim-pop flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl bg-sheet shadow-[var(--c-shadow)] sm:rounded-2xl ${wide ? "sm:max-w-xl" : "sm:max-w-md"}`}>
         <div className="flex items-center justify-between px-5 pb-2 pt-4">
           <h2 className="text-[17px] font-semibold">{title}</h2>
           <IconButton label="Close" onClick={onClose}><X size={20} /></IconButton>
@@ -67,11 +67,13 @@ export function Modal({ title, onClose, children, footer, wide }: {
 }
 
 export function Button({ children, onClick, variant = "primary", disabled, loading, type = "button", className = "" }: {
-  children: ReactNode; onClick?: () => void; variant?: "primary" | "ghost" | "danger"; disabled?: boolean; loading?: boolean; type?: "button" | "submit"; className?: string;
+  children: ReactNode; onClick?: () => void; variant?: "primary" | "ghost" | "danger" | "tonal" | "tonal2"; disabled?: boolean; loading?: boolean; type?: "button" | "submit"; className?: string;
 }) {
   const styles = {
     primary: "bg-outb text-white hover:brightness-110",
     ghost: "bg-field text-fg hover:bg-hover",
+    tonal: "bg-btn text-btn-fg hover:brightness-110",
+    tonal2: "bg-btn2 text-btn2-fg hover:brightness-110",
     danger: "bg-danger text-white hover:brightness-110",
   }[variant];
   return (

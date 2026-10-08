@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, Clock, Info, Lock, MoreVertical, Phone, Timer, Video } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowLeft, ChevronRight, Clock, Info, Lock, MessageCircle, MoreVertical, Phone, Timer, UserRound, Users, Video } from "lucide-react";
+import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { dayLabel, lastSeen, timerLabel } from "@/lib/format";
 import type { Message } from "@/lib/types";
@@ -12,18 +13,20 @@ import { Avatar, ErrorState, IconButton, Spinner, TypingDots } from "./ui";
 const GAP_MS = 5 * 60 * 1000;
 
 export function ChatView() {
-  const { active: conv, messages, hasMore, messagesLoading, messagesError, loadOlder, openConversation, closeConversation, unreadMarker, me, typingNames, isOnline, lastSeenOf, openModal, wsStatus } = useApp();
+  const { active: conv, conversations, messages, hasMore, messagesLoading, messagesError, loadOlder, openConversation, closeConversation, unreadMarker, me, typingNames, isOnline, lastSeenOf, openModal, wsStatus } = useApp();
   const [reply, setReply] = useState<Message | null>(null);
   const [menu, setMenu] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
   const [newCount, setNewCount] = useState(0);
   const [focusSignal, setFocusSignal] = useState(0);
+  const [contactIds, setContactIds] = useState<Set<number> | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const prevHeight = useRef<number | null>(null);
   const prevLen = useRef(0);
   const lastId = useRef<number | null>(null);
   const loadingOlder = useRef(false);
   const cid = conv?.id ?? 0;
+  useEffect(() => { api.contacts().then((l) => setContactIds(new Set(l.map((u) => u.id)))).catch(() => {}); }, []);
   const list = useMemo(() => messages[cid] ?? [], [messages, cid]);
 
   const scrollToBottom = useCallback((smooth = false) => {
@@ -75,6 +78,7 @@ export function ChatView() {
   if (!conv) return null;
 
   const typers = typingNames(conv.id);
+  const commonGroups = conv.peer ? conversations.filter((c) => c.type === "group" && c.members.some((m) => m.id === conv.peer!.id)).length : 0;
   let subtitle: React.ReactNode;
   if (typers.length) subtitle = <span className="flex items-center gap-1.5 text-accent"><TypingDots />{conv.type === "group" ? `${typers.join(", ")} ${typers.length > 1 ? "are" : "is"} typing` : "typing"}</span>;
   else if (conv.type === "direct" && conv.peer) subtitle = isOnline(conv.peer) ? <span className="text-[#2e9a57]">Online</span> : lastSeen(lastSeenOf(conv.peer));
@@ -84,7 +88,7 @@ export function ChatView() {
   list.forEach((m, i) => {
     const prev = list[i - 1], next = list[i + 1];
     const newDay = !prev || new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
-    if (newDay) items.push(<div key={`d${m.id}`} className="sticky top-1 z-10 my-3 flex justify-center"><span className="rounded-full bg-field/95 px-3 py-1 text-xs font-medium text-muted backdrop-blur">{dayLabel(m.created_at)}</span></div>);
+    if (newDay) items.push(<div key={`d${m.id}`} className="my-3 flex justify-center"><span className="rounded-full bg-field px-3 py-1 text-xs font-medium text-muted">{dayLabel(m.created_at)}</span></div>);
     if (unreadMarker?.convId === cid && unreadMarker.messageId === m.id)
       items.push(<div key="unread" className="my-3 flex items-center gap-3 text-xs font-semibold text-accent"><span className="h-px flex-1 bg-accent/30" />Unread messages<span className="h-px flex-1 bg-accent/30" /></div>);
     const joins = (a?: Message, b?: Message) => !!a && !!b && a.kind === "text" && b.kind === "text" && a.sender_id === b.sender_id && Math.abs(+new Date(b.created_at) - +new Date(a.created_at)) < GAP_MS && new Date(a.created_at).toDateString() === new Date(b.created_at).toDateString();
@@ -93,19 +97,19 @@ export function ChatView() {
 
   return (
     <section className="flex h-full min-w-0 flex-1 flex-col bg-chat" aria-label={`Chat with ${conv.title}`}>
-      <header className="flex items-center gap-2 border-b border-line bg-chat px-2 py-2.5 md:px-4">
-        <IconButton label="Back to chats" onClick={closeConversation} className="md:hidden"><ArrowLeft size={22} /></IconButton>
+      <header className="flex items-center gap-1 bg-chat px-2 py-2 shadow-[0_1px_0_var(--c-line)] md:px-4">
+        <IconButton label="Back to chats" onClick={closeConversation} className="md:hidden"><ArrowLeft size={24} /></IconButton>
         <button onClick={() => openModal({ type: "info", conversationId: conv.id })} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl py-0.5 text-left transition hover:opacity-80" aria-label="Conversation details">
           <Avatar name={conv.title} color={conv.type === "direct" ? conv.peer?.avatar_color ?? conv.avatar_color : conv.avatar_color} url={conv.peer?.avatar_url}
-            online={conv.peer ? isOnline(conv.peer) : false} size={42} />
+            online={conv.peer ? isOnline(conv.peer) : false} size={40} />
           <div className="min-w-0">
-            <h1 className="flex items-center gap-1.5 truncate text-base font-semibold" data-testid="chat-title">{conv.title}
+            <h1 className="flex items-center gap-1.5 truncate text-[18px] font-medium leading-tight" data-testid="chat-title">{conv.title}
               {conv.disappear_after && <span title={`Disappearing messages: ${timerLabel(conv.disappear_after)}`} className="text-muted"><Timer size={14} /></span>}</h1>
-            <p className="truncate text-[13px] text-muted">{subtitle}</p>
+            <p className="truncate text-[13px] leading-tight text-muted">{subtitle}</p>
           </div>
         </button>
-        <IconButton label="Video call" onClick={() => openModal({ type: "comingSoon", feature: "Video calls" })} className="hidden sm:flex"><Video size={20} /></IconButton>
-        <IconButton label="Voice call" onClick={() => openModal({ type: "comingSoon", feature: "Voice calls" })} className="hidden sm:flex"><Phone size={19} /></IconButton>
+        <IconButton label="Video call" onClick={() => openModal({ type: "comingSoon", feature: "Video calls" })} ><Video size={21} /></IconButton>
+        <IconButton label="Voice call" onClick={() => openModal({ type: "comingSoon", feature: "Voice calls" })} ><Phone size={20} /></IconButton>
         <div className="relative">
           <IconButton label="Conversation menu" onClick={() => setMenu((v) => !v)} active={menu}><MoreVertical size={20} /></IconButton>
           {menu && (<>
@@ -113,8 +117,7 @@ export function ChatView() {
             <div className="anim-pop absolute right-0 top-11 z-30 w-56 overflow-hidden rounded-2xl border border-line bg-bg py-1.5 shadow-[var(--c-shadow)]" role="menu">
               <button role="menuitem" onClick={() => { setMenu(false); openModal({ type: "info", conversationId: conv.id }); }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-hover"><Info size={17} className="text-muted" /> {conv.type === "group" ? "Group info" : "Contact info"}</button>
               <button role="menuitem" onClick={() => { setMenu(false); openModal({ type: "info", conversationId: conv.id }); }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-hover"><Clock size={17} className="text-muted" /> Disappearing messages</button>
-              <button role="menuitem" onClick={() => { setMenu(false); openModal({ type: "comingSoon", feature: "Video calls" }); }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-hover sm:hidden"><Video size={17} className="text-muted" /> Video call</button>
-              <button role="menuitem" onClick={() => { setMenu(false); closeConversation(); }} className="hidden w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-hover md:flex"><ArrowLeft size={17} className="text-muted" /> Close chat</button>
+                            <button role="menuitem" onClick={() => { setMenu(false); closeConversation(); }} className="hidden w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-hover md:flex"><ArrowLeft size={17} className="text-muted" /> Close chat</button>
             </div>
           </>)}
         </div>
@@ -131,11 +134,24 @@ export function ChatView() {
           ) : (<>
             {hasMore[cid] && <div className="flex justify-center py-2"><Spinner size={18} /></div>}
             {!hasMore[cid] && (
-              <div className="mx-auto my-4 flex max-w-xs flex-col items-center gap-2 text-center">
-                <Avatar name={conv.title} color={conv.type === "direct" ? conv.peer?.avatar_color ?? conv.avatar_color : conv.avatar_color} url={conv.peer?.avatar_url} size={72} />
-                <p className="text-lg font-semibold">{conv.title}</p>
-                {conv.type === "direct" && conv.peer && <p className="text-sm text-muted">{conv.peer.about}</p>}
-                <p className="mt-1 flex items-center gap-1.5 rounded-full bg-field px-3 py-1 text-xs text-muted"><Lock size={12} /> Messages are end-to-end encrypted (simulated)</p>
+              <div className="mx-auto my-5 flex max-w-[300px] flex-col items-center gap-2.5">
+                <div className="flex w-full flex-col items-center gap-1.5 rounded-[28px] border border-line px-6 py-5 text-center">
+                  <Avatar name={conv.title} color={conv.type === "direct" ? conv.peer?.avatar_color ?? conv.avatar_color : conv.avatar_color} url={conv.peer?.avatar_url} size={72} />
+                  <button onClick={() => openModal({ type: "info", conversationId: conv.id })} className="flex items-center gap-0.5 text-[18px] font-medium">{conv.title}<ChevronRight size={18} className="text-muted" /></button>
+                  {conv.type === "direct" && conv.peer && <p className="text-[13px] text-muted">{conv.peer.about}</p>}
+                  {conv.type === "direct" && conv.peer && contactIds && !contactIds.has(conv.peer.id) && (
+                    <button onClick={() => openModal({ type: "connections" })} className="mt-0.5 flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,#f29d38_16%,transparent)] px-3 py-1 text-xs font-medium text-[#d9822b]">
+                      <UserRound size={13} />? Name not verified
+                    </button>
+                  )}
+                  <span className="mt-1 flex items-center gap-1.5 rounded-full bg-field px-3 py-1 text-xs text-muted">
+                    <Users size={13} /> {conv.type === "group" ? `${conv.members.length} members` : commonGroups === 0 ? "No groups in common" : `${commonGroups} group${commonGroups > 1 ? "s" : ""} in common`}
+                  </span>
+                </div>
+                {conv.type === "direct" && conv.peer && (
+                  <p className="flex items-center gap-1.5 text-center text-xs text-muted"><MessageCircle size={13} /> {conv.created_by === me?.id ? "You started" : `${conv.peer.display_name.split(" ")[0]} started`} this chat with {conv.peer.phone ?? `@${conv.peer.username}`}.</p>
+                )}
+                <p className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-muted"><Lock size={12} /> Messages are end-to-end encrypted (simulated)</p>
               </div>
             )}
             {list.length === 0 && (

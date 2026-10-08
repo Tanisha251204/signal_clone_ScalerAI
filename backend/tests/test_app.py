@@ -225,3 +225,31 @@ def test_active_content_uploads_are_not_served_as_web_pages(client, aarav):
     assert "text/html" not in served.headers["content-type"]
     assert client.post("/api/uploads", headers=ha, files={"file": ("big.bin", b"x" * (10 * 1024 * 1024 + 1), "application/octet-stream")}).status_code == 413
     assert client.post("/api/uploads", files={"file": ("a.txt", b"x", "text/plain")}).status_code == 401
+
+
+# ───────── HARDENING (added after self-audit) ─────────
+def test_blank_names_are_rejected(client, aarav):
+    _, ha, _ = aarav
+    reg = {"identifier": "+919777700001", "otp": "123456", "display_name": "   "}
+    assert client.post("/api/auth/register", json=reg).status_code == 422
+    assert client.post("/api/conversations/group", headers=ha, json={"name": "   ", "member_ids": [2]}).status_code == 422
+    assert client.patch("/api/me", headers=ha, json={"display_name": "  "}).status_code == 422
+
+
+def test_untrusted_fields_are_validated(client, aarav, priya):
+    _, ha, _ = aarav
+    bad_color = {"identifier": "+919777700002", "otp": "123456", "display_name": "X", "avatar_color": "red;background:url(x)"}
+    assert client.post("/api/auth/register", json=bad_color).status_code == 422
+    conv = client.post("/api/conversations/direct", headers=ha, json={"user_id": priya[2]["id"]}).json()
+    for url in ("/uploads/../signal.db", "https://evil.example/x.png", "/uploads/nothex.png"):
+        r = client.post(f"/api/conversations/{conv['id']}/messages", headers=ha, json={"body": "x", "attachment_url": url})
+        assert r.status_code in (400, 422), url
+
+
+def test_client_id_is_idempotent(client, aarav, priya):
+    _, ha, _ = aarav
+    conv = client.post("/api/conversations/direct", headers=ha, json={"user_id": priya[2]["id"]}).json()
+    body = {"body": "once only", "client_id": "retry-123"}
+    a = client.post(f"/api/conversations/{conv['id']}/messages", headers=ha, json=body).json()
+    b = client.post(f"/api/conversations/{conv['id']}/messages", headers=ha, json=body).json()
+    assert a["id"] == b["id"]

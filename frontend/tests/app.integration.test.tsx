@@ -23,10 +23,12 @@ function mount() {
 async function signInAs(name: RegExp) {
   const user = userEvent.setup();
   mount();
-  await user.click(await screen.findByRole("button", { name }));      // pick demo account → OTP step
+  await user.click(await screen.findByRole("button", { name: "Continue" }));      // welcome
+  await user.click(await screen.findByRole("button", { name: "Next" }));          // permissions
+  await user.click(await screen.findByRole("button", { name }));                  // pick demo account → code step
   await user.click(await screen.findByLabelText("Digit 1"));
-  await user.keyboard("123456");                                         // mocked fixed OTP, auto-submits on 6th digit
-  await screen.findByLabelText("Search conversations", {}, { timeout: 8000 });
+  await user.keyboard("123456");                                                  // mocked fixed OTP, auto-submits on 6th digit
+  await screen.findByRole("navigation", { name: "Primary" }, { timeout: 8000 });  // main app (bottom nav) is showing
   return user;
 }
 
@@ -46,7 +48,7 @@ describe("Signal clone UI against live backend", () => {
     expect(localStorage.getItem("signal.token")).toBeTruthy();
     document.body.innerHTML = "";
     mount(); // simulates refresh: new app instance, same localStorage
-    expect(await screen.findByLabelText("Search conversations")).toBeInTheDocument();
+    expect(await screen.findByRole("navigation", { name: "Primary" })).toBeInTheDocument(); // straight into the app, no onboarding
   });
 
   it("opens a chat, sends a message, shows it with a receipt, and clears unread", async () => {
@@ -111,7 +113,7 @@ describe("Signal clone UI against live backend", () => {
       expect(r).toBeTruthy(); expect(within(r!).getByText(body)).toBeInTheDocument();
       return r!;
     }, { timeout: 6000 });
-    expect(within(row).getByTestId("unread-badge")).toBeInTheDocument();
+    await waitFor(() => expect(within(row).getByTestId("unread-badge")).toBeInTheDocument());
     // conversation moved to the top (most recent activity)
     expect(screen.getAllByTestId("conversation-item")[0]).toBe(row);
   });
@@ -131,12 +133,71 @@ describe("Signal clone UI against live backend", () => {
 
   it("search finds conversations and message text; logout returns to the login screen", async () => {
     const user = await signInAs(/Aarav Sharma/);
+    await user.click(screen.getByRole("button", { name: "Search" }));
     await user.type(screen.getByLabelText("Search conversations"), "trek");
     expect((await screen.findAllByText("Weekend Trek 🏔️")).length).toBeGreaterThan(0); // chat hit (+ message hits)
-    await user.clear(screen.getByLabelText("Search conversations"));
+    await user.click(screen.getByLabelText("Close search"));
     await user.click(screen.getByLabelText("Menu"));
     await user.click(await screen.findByRole("menuitem", { name: /Log out/ }));
-    expect(await screen.findByText("Your phone number or username")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Continue" })).toBeInTheDocument(); // back to the welcome screen
     expect(localStorage.getItem("signal.token")).toBeNull();
+  });
+
+  it("onboarding: a brand-new number goes welcome → permissions → phone → code → PIN → profile → app", async () => {
+    const user = userEvent.setup();
+    mount();
+    await user.click(await screen.findByRole("button", { name: "Continue" }));
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+    const digits = String(Date.now()).slice(-10);
+    await user.type(await screen.findByLabelText("Phone number"), digits);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByText("Is the phone number below correct?")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "OK" }));
+    await user.click(await screen.findByLabelText("Digit 1"));
+    await user.keyboard("123456");
+    await user.type(await screen.findByLabelText("PIN"), "4321");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.type(await screen.findByLabelText("First name"), "Test");
+    await user.type(screen.getByLabelText("Last name"), "User");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByRole("navigation", { name: "Primary" }, { timeout: 8000 })).toBeInTheDocument();
+    expect(await screen.findByText(/No chats yet/, {}, { timeout: 8000 })).toBeInTheDocument();
+  });
+
+  it("bottom navigation switches between Chats, Calls and Stories", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    await user.click(screen.getByRole("button", { name: /Calls/ }));
+    expect(await screen.findByText("No recent calls")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Stories/ }));
+    expect(await screen.findByText("No recent stories")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Chats/ }));
+    expect((await screen.findAllByTestId("conversation-item")).length).toBeGreaterThanOrEqual(7);
+  });
+
+  it("Get started cards can be dismissed and stay dismissed", async () => {
+    localStorage.removeItem("signal.getStarted");
+    const user = await signInAs(/Aarav Sharma/);
+    const region = await screen.findByRole("region", { name: "Get started" });
+    expect(within(region).getByText("New group")).toBeInTheDocument();
+    expect(within(region).getByText("Invite friends")).toBeInTheDocument();
+    await user.click(within(region).getByLabelText("Dismiss New group"));
+    expect(within(region).queryByText("New group")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("signal.getStarted")!)).toContain("group");
+    localStorage.removeItem("signal.getStarted");
+  });
+
+  it("a chat started by a non-contact shows 'Name not verified' and explains connections", async () => {
+    const vikram = await login("+919810000007");
+    const aaravId = (await login("+919810000001")).user.id;
+    const conv = await (await fetch(`${API}/api/conversations/direct`, { method: "POST", headers: authed(vikram.token), body: JSON.stringify({ user_id: aaravId }) })).json();
+    await fetch(`${API}/api/conversations/${conv.id}/messages`, { method: "POST", headers: authed(vikram.token), body: JSON.stringify({ body: "hi from a stranger", client_id: `s-${Date.now()}` }) });
+    const user = await signInAs(/Aarav Sharma/);
+    const row = await waitFor(() => {
+      const r = screen.getAllByTestId("conversation-item").find((i) => within(i).queryByText(/Vikram/));
+      expect(r).toBeTruthy(); return r!;
+    }, { timeout: 6000 });
+    await user.click(row);
+    await user.click(await screen.findByRole("button", { name: /Name not verified/ }, { timeout: 5000 }));
+    expect(await screen.findByText(/Connections are people you/)).toBeInTheDocument();
   });
 });

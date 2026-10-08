@@ -2,6 +2,7 @@ import random
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models as M
@@ -203,10 +204,15 @@ async def send_message(cid: int, body: MessageCreate, user: M.User = Depends(cur
             return serialize_message(db, dup)
     attachment = None
     if body.attachment_url:
-        if not body.attachment_url.startswith("/uploads/"):
-            raise HTTPException(400, "Invalid attachment")
         attachment = {"url": body.attachment_url, "name": body.attachment_name, "type": body.attachment_type, "size": body.attachment_size}
-    data = await create_message(db, conv, user.id, text, client_id=body.client_id, reply_to_id=body.reply_to_id, attachment=attachment)
+    try:
+        data = await create_message(db, conv, user.id, text, client_id=body.client_id, reply_to_id=body.reply_to_id, attachment=attachment)
+    except IntegrityError:  # two concurrent retries with the same client_id: the unique index let only one win
+        db.rollback()
+        dup = db.scalar(select(M.Message).where(M.Message.conversation_id == cid, M.Message.sender_id == user.id, M.Message.client_id == body.client_id))
+        if not dup:
+            raise
+        return serialize_message(db, dup)
     await push_conversation(db, conv)
     return data
 

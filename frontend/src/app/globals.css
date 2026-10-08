@@ -5,38 +5,49 @@
   --c-bg: #ffffff;
   --c-sidebar: #ffffff;
   --c-chat: #ffffff;
-  --c-hover: #f3f3f3;
-  --c-selected: #e9edf8;
-  --c-line: #e4e4e4;
-  --c-fg: #1b1b1b;
-  --c-muted: #6e6e6e;
-  --c-in: #e9e9e9;
-  --c-in-fg: #1b1b1b;
+  --c-sheet: #ffffff;
+  --c-hover: #f1f2f5;
+  --c-selected: #e7ecfa;
+  --c-line: #e3e5ea;
+  --c-fg: #1b1c1f;
+  --c-muted: #6b6e76;
+  --c-in: #e9eaee;
+  --c-in-fg: #1b1c1f;
   --c-out: #2c6bed;
   --c-out-fg: #ffffff;
-  --c-input: #f1f1f1;
+  --c-input: #f0f1f4;
   --c-accent: #2c6bed;
-  --c-accent-soft: #e5edfd;
+  --c-accent-soft: #e3ebfd;
+  --c-btn: #2c6bed;
+  --c-btn-fg: #ffffff;
+  --c-btn2: #e9ebf0;
+  --c-btn2-fg: #1b1c1f;
   --c-danger: #d93a3a;
   --c-overlay: rgba(0, 0, 0, 0.45);
   --c-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
 }
+/* Dark palette sampled from the real Signal Android screenshots (bg #27282c, sheet #323338, tonal buttons #586075 / #373b44). */
 [data-theme="dark"] {
-  --c-bg: #121212;
-  --c-sidebar: #1b1b1b;
-  --c-chat: #121212;
-  --c-hover: #262626;
-  --c-selected: #2b3345;
-  --c-line: #2d2d2d;
-  --c-fg: #f2f2f2;
-  --c-muted: #9a9a9a;
-  --c-in: #2f2f2f;
-  --c-in-fg: #f2f2f2;
+  --c-bg: #27282c;
+  --c-sidebar: #27282c;
+  --c-chat: #27282c;
+  --c-sheet: #323338;
+  --c-hover: #33353a;
+  --c-selected: #3a3d44;
+  --c-line: #3a3c42;
+  --c-fg: #f2f2f3;
+  --c-muted: #a6a9b0;
+  --c-in: #3c3e44;
+  --c-in-fg: #f2f2f3;
   --c-out: #2c6bed;
   --c-out-fg: #ffffff;
-  --c-input: #2a2a2a;
-  --c-accent: #5b8ff5;
-  --c-accent-soft: #1f2b45;
+  --c-input: #34363c;
+  --c-accent: #7fa3f8;
+  --c-accent-soft: #2f3a57;
+  --c-btn: #586075;
+  --c-btn-fg: #ffffff;
+  --c-btn2: #373b44;
+  --c-btn2-fg: #f2f2f3;
   --c-danger: #ef6464;
   --c-overlay: rgba(0, 0, 0, 0.65);
   --c-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
@@ -46,6 +57,7 @@
   --color-bg: var(--c-bg);
   --color-sidebar: var(--c-sidebar);
   --color-chat: var(--c-chat);
+  --color-sheet: var(--c-sheet);
   --color-hover: var(--c-hover);
   --color-selected: var(--c-selected);
   --color-line: var(--c-line);
@@ -58,8 +70,12 @@
   --color-field: var(--c-input);
   --color-accent: var(--c-accent);
   --color-accent-soft: var(--c-accent-soft);
+  --color-btn: var(--c-btn);
+  --color-btn-fg: var(--c-btn-fg);
+  --color-btn2: var(--c-btn2);
+  --color-btn2-fg: var(--c-btn2-fg);
   --color-danger: var(--c-danger);
-  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 html, body { height: 100%; }
@@ -72,7 +88,9 @@ body {
 }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
-:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+/* keyboard focus ring for controls; text fields draw their own ring/underline */
+button:focus-visible, a:focus-visible, select:focus-visible, [role="tab"]:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+input:focus-visible, textarea:focus-visible { outline: none; }
 
 /* subtle scrollbars */
 * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--c-muted) 40%, transparent) transparent; }

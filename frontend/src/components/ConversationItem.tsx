@@ -1,6 +1,5 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { listTime, previewOf } from "@/lib/format";
 import type { Conversation } from "@/lib/types";
@@ -25,15 +24,15 @@ export function ConversationItem({ conv, selected, onClick }: { conv: Conversati
 
   return (
     <button onClick={onClick} aria-current={selected} data-testid="conversation-item"
-      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${selected ? "bg-selected" : "hover:bg-hover"}`}>
+      className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition ${selected ? "bg-selected" : "hover:bg-hover"}`}>
       <Avatar name={conv.title} color={conv.type === "direct" ? conv.peer?.avatar_color ?? conv.avatar_color : conv.avatar_color} url={conv.peer?.avatar_url} online={online} size={52} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className={`truncate text-[15px] ${unread ? "font-bold" : "font-semibold"}`}>{conv.title}</span>
+          <span className={`truncate text-[16px] ${unread ? "font-bold" : "font-medium"}`}>{conv.title}</span>
           {last && <span className={`shrink-0 text-xs ${unread ? "font-semibold text-accent" : "text-muted"}`}>{listTime(last.created_at)}</span>}
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className={`line-clamp-1 flex-1 text-[13.5px] ${unread ? "font-medium text-fg" : "text-muted"}`}>{preview}</p>
+          <p className={`line-clamp-1 flex-1 text-[14px] ${unread ? "font-medium text-fg" : "text-muted"}`}>{preview}</p>
           {unread ? (
             <span data-testid="unread-badge" className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-outb px-1.5 text-[11px] font-bold text-white">
               {conv.unread_count > 99 ? "99+" : conv.unread_count}
@@ -48,4 +47,3 @@ export function ConversationItem({ conv, selected, onClick }: { conv: Conversati
     </button>
   );
 }
-void Check;

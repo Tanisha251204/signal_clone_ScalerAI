@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections import defaultdict
 from contextlib import asynccontextmanager
 
@@ -14,6 +15,8 @@ from .routers import auth, conversations, realtime, search, users
 from .seed import seed_if_empty
 from .services import member_ids, push_conversation, utcnow
 from .ws_manager import manager
+
+log = logging.getLogger("signal.expiry")
 
 
 async def expire_messages_loop() -> None:
@@ -36,7 +39,7 @@ async def expire_messages_loop() -> None:
                     if conv:
                         await push_conversation(db, conv)
         except Exception:
-            pass
+            log.exception("expiry sweep failed")
 
 
 @asynccontextmanager

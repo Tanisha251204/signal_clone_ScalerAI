@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, ApiError, assetUrl, setToken, setUnauthorizedHandler } from "@/lib/api";
+import { api, ApiError, setToken, setUnauthorizedHandler } from "@/lib/api";
 import { PREFS_KEY, THEME_KEY, TOKEN_KEY, WS_URL } from "@/lib/config";
 import { previewOf } from "@/lib/format";
 import type { Attachment, Conversation, Message, MsgStatus, ThemePref, Toast, User } from "@/lib/types";
@@ -12,6 +12,7 @@ export type ModalState =
   | { type: "profile" }
   | { type: "settings" }
   | { type: "info"; conversationId: number }
+  | { type: "connections" }
   | { type: "comingSoon"; feature: string }
   | null;
 
@@ -80,7 +81,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(null);
   const [me, setMeState] = useState<User | null>(null);
   const [convs, setConvs] = useState<Record<number, Conversation>>({});
-  const [convsLoading, setConvsLoading] = useState(false);
+  const [convsLoading, setConvsLoading] = useState(true); // true until the first list load finishes: never flash the empty state
   const [convsError, setConvsError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<number, Message[]>>({});
   const [hasMore, setHasMore] = useState<Record<number, boolean>>({});
@@ -303,7 +304,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setTokenState(null);
     setMeState(null);
-    setConvs({}); setMessages({}); setHasMore({}); setActiveId(null); setTyping({}); setPresence({}); setModal(null);
+    setConvs({}); setConvsLoading(true); setMessages({}); setHasMore({}); setActiveId(null); setTyping({}); setPresence({}); setModal(null);
     typingSent.current = {};
   }, []);
 
@@ -487,6 +488,5 @@ export function AppProvider({ children }: { children: ReactNode }) {
     sendTyping, typingNames, isOnline, lastSeenOf, startDirect, createGroup, upsertConversation, wsStatus,
     toasts, toast, dismissToast, theme, setTheme, prefs, setPref, modal, openModal: setModal, closeModal: () => setModal(null),
   };
-  void assetUrl;
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }
