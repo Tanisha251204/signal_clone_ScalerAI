@@ -21,7 +21,7 @@ class User(Base):
     phone: Mapped[str | None] = mapped_column(String(20), unique=True, index=True)
     username: Mapped[str | None] = mapped_column(String(32), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(64))
-    about: Mapped[str] = mapped_column(String(140), default="Speak Freely")
+    about: Mapped[str] = mapped_column(String(140), default="")
     avatar_color: Mapped[str] = mapped_column(String(9), default="#2C6BED")
     avatar_url: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

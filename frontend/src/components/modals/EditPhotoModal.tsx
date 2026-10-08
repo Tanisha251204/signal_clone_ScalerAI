@@ -91,7 +91,7 @@ export function EditPhotoModal() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={previewUrl.startsWith("/uploads") ? assetUrl(previewUrl) : previewUrl} alt="Selected profile photo" className="h-[140px] w-[140px] rounded-full object-cover" />
           ) : <Avatar name={me.display_name} color={me.avatar_color} size={140} />}
-          {previewUrl && <button aria-label="Remove photo" onClick={() => setChoice({ kind: "none" })} className="absolute -right-1 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-sheet text-fg shadow ring-2 ring-[var(--c-chat)]"><XIcon size={20} /></button>}
+          <button aria-label="Remove photo" onClick={() => setChoice({ kind: "none" })} className="absolute -right-1 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-sheet text-fg shadow ring-2 ring-[var(--c-chat)]"><XIcon size={20} /></button>
         </div>
       </div>
       <div className="flex justify-center gap-6 pb-5">

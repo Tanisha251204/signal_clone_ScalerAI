@@ -334,12 +334,13 @@ describe("Signal clone UI against live backend", () => {
     await user.click(await screen.findByRole("button", { name: "Edit your profile" }));
     expect(await screen.findByRole("button", { name: "Edit photo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Badges/ })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Building things/ }));
+    await user.click(screen.getByRole("button", { name: /^About/ }));
     await user.clear(screen.getByRole("textbox", { name: "About" }));
     await user.type(screen.getByRole("textbox", { name: "About" }), "Shipping things");
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("button", { name: /Shipping things/ })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Edit photo" }));
+    expect(screen.getByRole("button", { name: "Remove photo" })).toBeInTheDocument();
     expect(within(await screen.findByRole("listbox", { name: "Default avatars" })).getAllByRole("option")).toHaveLength(13);
     const editor = within(screen.getByRole("dialog", { name: "Edit photo" }));
     expect(editor.getByRole("button", { name: "Camera" })).toBeInTheDocument();

@@ -8,14 +8,14 @@ from . import models as M
 from .services import utcnow
 
 USERS = {  # key: (display name, phone, username, about, colour)
-    "aarav": ("Aarav Sharma", "+919810000001", "aarav", "Building things. Speak freely.", "#2C6BED"),
-    "priya": ("Priya Patel", "+919810000002", "priya.p", "Coffee first ☕", "#E0457B"),
-    "rohan": ("Rohan Mehta", "+919810000003", "rohan_m", "On a run 🏃", "#1B998B"),
-    "sneha": ("Sneha Iyer", "+919810000004", "sneha", "Design is thinking made visible", "#8E44AD"),
-    "karan": ("Karan Singh", "+919810000005", "karan_s", "Busy — ping me", "#F29D38"),
-    "meera": ("Meera Nair", "+919810000006", "meera", "🌿", "#D64545"),
-    "vikram": ("Vikram Rao", "+919810000007", "vikram", "Available", "#3D5A80"),
-    "ananya": ("Ananya Das", "+919810000008", "ananya", "Privacy matters", "#5B8C5A"),
+    "aarav": ("Aarav Sharma", "+919810000001", "aarav", "", "#2C6BED"),
+    "priya": ("Priya Patel", "+919810000002", "priya.p", "", "#E0457B"),
+    "rohan": ("Rohan Mehta", "+919810000003", "rohan_m", "", "#1B998B"),
+    "sneha": ("Sneha Iyer", "+919810000004", "sneha", "", "#8E44AD"),
+    "karan": ("Karan Singh", "+919810000005", "karan_s", "", "#F29D38"),
+    "meera": ("Meera Nair", "+919810000006", "meera", "", "#D64545"),
+    "vikram": ("Vikram Rao", "+919810000007", "vikram", "", "#3D5A80"),
+    "ananya": ("Ananya Das", "+919810000008", "ananya", "", "#5B8C5A"),
 }
 
 H, D = 60, 60 * 24  # minutes
