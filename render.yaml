@@ -1,0 +1,27 @@
+# Render Blueprint — deploys the FastAPI backend (REST + WebSockets + SQLite).
+# The Next.js frontend is deployed separately (Vercel); see README → Deployment.
+services:
+  - type: web
+    name: signal-clone-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: CORS_ORIGINS
+        sync: false            # set to your Vercel URL, e.g. https://signal-clone.vercel.app
+      - key: SEED_DEMO_DATA
+        value: "1"
+      - key: FIXED_OTP
+        value: "123456"
+    # SQLite lives on the instance disk. On the free plan the disk is ephemeral (data resets on redeploy/restart
+    # and the demo seed is re-created). For durable data attach a persistent disk (paid) and set:
+    #   DATABASE_URL=sqlite:////var/data/signal.db   UPLOAD_DIR=/var/data/uploads
+    # disk:
+    #   name: data
+    #   mountPath: /var/data
+    #   sizeGB: 1

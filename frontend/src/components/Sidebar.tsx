@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LogOut, MessageSquarePlus, MoreVertical, Moon, Search, Settings, Sun, UserRound, Users, X, SearchX, MessageCircle, WifiOff } from "lucide-react";
+import { CircleDashed, LogOut, MessageSquarePlus, MoreVertical, Moon, Search, Settings, Sun, UserRound, Users, X, SearchX, MessageCircle, WifiOff } from "lucide-react";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { listTime, previewOf } from "@/lib/format";
@@ -21,6 +21,7 @@ export function Sidebar({ searchRef }: { searchRef: React.RefObject<HTMLInputEle
   const [results, setResults] = useState<SearchResults | null>(null);
   const [searching, setSearching] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [filter, setFilter] = useState<"all" | "unread" | "groups">("all");
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,6 +44,8 @@ export function Sidebar({ searchRef }: { searchRef: React.RefObject<HTMLInputEle
 
   const isDark = typeof document !== "undefined" && document.documentElement.dataset.theme === "dark";
   const open = (id: number) => { setQ(""); openConversation(id); };
+  const visible = conversations.filter((c) => filter === "all" || (filter === "unread" ? c.unread_count > 0 : c.type === "group"));
+  const unreadTotal = conversations.filter((c) => c.unread_count > 0).length;
   const noResults = results && !results.conversations.length && !results.contacts.length && !results.messages.length;
 
   return (
@@ -66,6 +69,7 @@ export function Sidebar({ searchRef }: { searchRef: React.RefObject<HTMLInputEle
               {[
                 { icon: UserRound, label: "Profile", run: () => openModal({ type: "profile" }) },
                 { icon: Users, label: "New group", run: () => openModal({ type: "newGroup" }) },
+                { icon: CircleDashed, label: "Stories", run: () => openModal({ type: "comingSoon", feature: "Stories" }) },
                 { icon: Settings, label: "Settings", run: () => openModal({ type: "settings" }) },
                 { icon: isDark ? Sun : Moon, label: isDark ? "Light mode" : "Dark mode", run: () => setTheme(isDark ? "light" : "dark") },
                 { icon: LogOut, label: "Log out", run: () => signOut(), danger: true },
@@ -78,6 +82,12 @@ export function Sidebar({ searchRef }: { searchRef: React.RefObject<HTMLInputEle
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex gap-1.5 px-3 pb-2" role="tablist" aria-label="Filter chats">
+        {([["all", "All"], ["unread", unreadTotal ? `Unread · ${unreadTotal}` : "Unread"], ["groups", "Groups"]] as const).map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
+            className={`rounded-full px-3 py-1 text-[13px] font-medium transition ${filter === k ? "bg-accent-soft text-accent" : "text-muted hover:bg-hover"}`}>{label}</button>))}
       </div>
 
       {wsStatus !== "open" && (
@@ -124,6 +134,12 @@ export function Sidebar({ searchRef }: { searchRef: React.RefObject<HTMLInputEle
           </div>
         ) : convsError && conversations.length === 0 ? (
           <ErrorState message={convsError} onRetry={refreshConversations} />
+        ) : conversations.length > 0 && visible.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 px-8 py-14 text-center text-muted">
+            <MessageCircle size={32} /><p className="font-medium text-fg">{filter === "unread" ? "You're all caught up" : "No groups yet"}</p>
+            <p className="text-sm">{filter === "unread" ? "No unread conversations." : "Create a group to chat with several people at once."}</p>
+            <Button variant="ghost" onClick={() => (filter === "groups" ? openModal({ type: "newGroup" }) : setFilter("all"))}>{filter === "groups" ? "New group" : "Show all chats"}</Button>
+          </div>
         ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-8 py-16 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent"><MessageCircle size={30} /></div>
@@ -133,7 +149,7 @@ export function Sidebar({ searchRef }: { searchRef: React.RefObject<HTMLInputEle
           </div>
         ) : (
           <div className="space-y-0.5 pt-1">
-            {conversations.map((c) => <ConversationItem key={c.id} conv={c} selected={c.id === activeId} onClick={() => open(c.id)} />)}
+            {visible.map((c) => <ConversationItem key={c.id} conv={c} selected={c.id === activeId} onClick={() => open(c.id)} />)}
           </div>
         )}
       </div>

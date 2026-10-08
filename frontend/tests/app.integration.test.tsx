@@ -116,6 +116,19 @@ describe("Signal clone UI against live backend", () => {
     expect(screen.getAllByTestId("conversation-item")[0]).toBe(row);
   });
 
+  it("filter chips narrow the list (Unread / Groups)", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    const total = (await screen.findAllByTestId("conversation-item")).length;
+    await user.click(screen.getByRole("tab", { name: /Groups/ }));
+    const groups = screen.getAllByTestId("conversation-item");
+    expect(groups.length).toBe(3); // Weekend Trek, Project Falcon, Family
+    await user.click(screen.getByRole("tab", { name: /Unread/ }));
+    const unread = screen.getAllByTestId("conversation-item");
+    expect(unread.length).toBeGreaterThan(0);
+    expect(unread.length).toBeLessThan(total);
+    unread.forEach((i) => expect(within(i).getByTestId("unread-badge")).toBeInTheDocument());
+  });
+
   it("search finds conversations and message text; logout returns to the login screen", async () => {
     const user = await signInAs(/Aarav Sharma/);
     await user.type(screen.getByLabelText("Search conversations"), "trek");
