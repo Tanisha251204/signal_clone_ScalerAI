@@ -25,23 +25,27 @@
   --c-danger: #d93a3a;
   --c-overlay: rgba(0, 0, 0, 0.45);
   --c-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+  --c-nav: #f1f2f6;
+  --c-pill: #dde3f3;
+  --c-fab: #e9ebf0;
+  --c-fab2: #2c6bed;
 }
 /* Dark palette sampled from the real Signal Android screenshots (bg #27282c, sheet #323338, tonal buttons #586075 / #373b44). */
 [data-theme="dark"] {
   --c-bg: #27282c;
-  --c-sidebar: #27282c;
-  --c-chat: #27282c;
-  --c-sheet: #323338;
+  --c-sidebar: #1b1c20;
+  --c-chat: #1b1c20;
+  --c-sheet: #272a31;
   --c-hover: #33353a;
   --c-selected: #3a3d44;
-  --c-line: #3a3c42;
+  --c-line: #323337;
   --c-fg: #f2f2f3;
   --c-muted: #a6a9b0;
   --c-in: #3c3e44;
   --c-in-fg: #f2f2f3;
-  --c-out: #2c6bed;
+  --c-out: #325df7;
   --c-out-fg: #ffffff;
-  --c-input: #34363c;
+  --c-input: #303135;
   --c-accent: #7fa3f8;
   --c-accent-soft: #2f3a57;
   --c-btn: #586075;
@@ -51,6 +55,10 @@
   --c-danger: #ef6464;
   --c-overlay: rgba(0, 0, 0, 0.65);
   --c-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --c-nav: #272a31;
+  --c-pill: #414659;
+  --c-fab: #272a31;
+  --c-fab2: #414659;
 }
 
 @theme inline {
@@ -68,6 +76,10 @@
   --color-outb: var(--c-out);
   --color-outb-fg: var(--c-out-fg);
   --color-field: var(--c-input);
+  --color-nav: var(--c-nav);
+  --color-pill: var(--c-pill);
+  --color-fab: var(--c-fab);
+  --color-fab2: var(--c-fab2);
   --color-accent: var(--c-accent);
   --color-accent-soft: var(--c-accent-soft);
   --color-btn: var(--c-btn);

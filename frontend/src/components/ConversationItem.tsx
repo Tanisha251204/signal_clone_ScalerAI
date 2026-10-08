@@ -24,25 +24,23 @@ export function ConversationItem({ conv, selected, onClick }: { conv: Conversati
 
   return (
     <button onClick={onClick} aria-current={selected} data-testid="conversation-item"
-      className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition ${selected ? "bg-selected" : "hover:bg-hover"}`}>
-      <Avatar name={conv.title} color={conv.type === "direct" ? conv.peer?.avatar_color ?? conv.avatar_color : conv.avatar_color} url={conv.peer?.avatar_url} online={online} size={52} />
+      className={`flex w-full items-center gap-5 px-6 py-[17px] text-left transition ${selected ? "bg-selected" : "hover:bg-hover"}`}>
+      <Avatar name={conv.title} color={conv.type === "direct" ? conv.peer?.avatar_color ?? conv.avatar_color : conv.avatar_color} url={conv.peer?.avatar_url} online={online} size={48} />
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className={`truncate text-[16px] ${unread ? "font-bold" : "font-medium"}`}>{conv.title}</span>
-          {last && <span className={`shrink-0 text-xs ${unread ? "font-semibold text-accent" : "text-muted"}`}>{listTime(last.created_at)}</span>}
-        </div>
-        <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className={`line-clamp-1 flex-1 text-[14px] ${unread ? "font-medium text-fg" : "text-muted"}`}>{preview}</p>
-          {unread ? (
-            <span data-testid="unread-badge" className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-outb px-1.5 text-[11px] font-bold text-white">
-              {conv.unread_count > 99 ? "99+" : conv.unread_count}
-            </span>
-          ) : mine && last?.kind === "text" ? (
-            <span className={`shrink-0 ${last.status === "read" ? "text-accent" : "text-muted"}`} style={{ ["--rc-bg" as string]: "var(--c-sidebar)" }}>
-              <ReceiptIcon status={last.status} />
-            </span>
-          ) : null}
-        </div>
+        <span className={`block truncate text-[18px] leading-tight ${unread ? "font-semibold" : ""}`}>{conv.title}</span>
+        <p className={`mt-0.5 line-clamp-1 text-[15px] leading-tight ${unread ? "font-medium text-fg" : "text-muted"}`}>{preview}</p>
+      </div>
+      <div className="flex min-h-[44px] shrink-0 flex-col items-end justify-between">
+        {last ? <span className={`text-[14px] ${unread ? "font-semibold text-accent" : "text-muted"}`}>{listTime(last.created_at)}</span> : <span />}
+        {unread ? (
+          <span data-testid="unread-badge" className="flex h-5 min-w-5 items-center justify-center rounded-full bg-outb px-1.5 text-[11px] font-bold text-white">
+            {conv.unread_count > 99 ? "99+" : conv.unread_count}
+          </span>
+        ) : mine && last?.kind === "text" ? (
+          <span className={last.status === "read" ? "text-accent" : "text-muted"} style={{ ["--rc-bg" as string]: "var(--c-sidebar)" }}>
+            <ReceiptIcon status={last.status} />
+          </span>
+        ) : <span />}
       </div>
     </button>
   );

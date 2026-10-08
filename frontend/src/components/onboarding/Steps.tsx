@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Bell, Camera, ChevronDown, CircleUserRound, Keyboard, Loader2, Phone, UserRound, Users } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, Keyboard, Loader2, Phone, UserRound, Users } from "lucide-react";
 import { OTP_HINT } from "@/lib/config";
 import { Avatar, Button } from "../ui";
 import { Illustration } from "./Illustration";
@@ -51,11 +51,34 @@ export function WelcomeStep({ onContinue, onRestore }: { onContinue: () => void;
   );
 }
 
+/** Real-Signal permission glyphs: pale-yellow bell with ringing arcs, and a white contact circle with a blue-grey outline. */
+function BellIcon() {
+  return (
+    <svg width="38" height="38" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <g stroke="#c4b66b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M13.2 14.6q-1.6 2.2-1.6 5M10.4 12.4q-2.7 3.3-2.7 7.6" />
+        <path d="M26.8 14.6q1.6 2.2 1.6 5M29.6 12.4q2.7 3.3 2.7 7.6" />
+        <path d="M20 9.2c-4.3 0-6.6 3.1-6.6 7.1v5.3c0 1.3-.6 2.4-1.7 3.2-.6.4-.4 1.3.4 1.3h16.4c.8 0 1-.9.4-1.3-1.1-.8-1.7-1.9-1.7-3.2v-5.3c0-4-2.3-7.1-6.6-7.1Z" fill="#fdf5c6" />
+        <path d="M17.6 29.6q.4 2.2 2.4 2.2t2.4-2.2" fill="#fdf5c6" />
+      </g>
+    </svg>
+  );
+}
+function ContactIcon() {
+  return (
+    <svg width="38" height="38" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <circle cx="20" cy="20" r="14.5" fill="#ffffff" stroke="#8b9ac4" strokeWidth="1.8" />
+      <circle cx="20" cy="16.2" r="4.6" stroke="#8b9ac4" strokeWidth="1.8" />
+      <path d="M11.4 30.2c1.6-4 4.6-5.8 8.6-5.8s7 1.8 8.6 5.8" stroke="#8b9ac4" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function PermissionsStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
   // Plain coloured glyphs (no round tile), like the real permissions screen: yellow bell, outlined contact, outlined phone.
   const rows = [
-    { icon: <Bell size={34} strokeWidth={1.6} fill="#f6cf4d" stroke="#e0a82e" />, title: "Notifications", body: "Get notified when new messages arrive." },
-    { icon: <CircleUserRound size={34} strokeWidth={1.6} stroke="#aebde8" />, title: "Contacts", body: "Find people you know. Your contacts stay private in this demo." },
+    { icon: <BellIcon />, title: "Notifications", body: "Get notified when new messages arrive." },
+    { icon: <ContactIcon />, title: "Contacts", body: "Find people you know. Your contacts stay private in this demo." },
     { icon: <Phone size={34} strokeWidth={1.6} stroke="#aebde8" fill="#cfd8f3" />, title: "Phone calls", body: "Make registering easier and enable additional calling features." },
   ];
   return (

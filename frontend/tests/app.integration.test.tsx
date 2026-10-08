@@ -122,6 +122,8 @@ describe("Signal clone UI against live backend", () => {
   it("filter chips narrow the list (Unread / Groups)", async () => {
     const user = await signInAs(/Aarav Sharma/);
     const total = (await screen.findAllByTestId("conversation-item")).length;
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Filter chats" }));
     await user.click(screen.getByRole("tab", { name: /Groups/ }));
     const groups = screen.getAllByTestId("conversation-item");
     expect(groups.length).toBe(3); // Weekend Trek, Project Falcon, Family
@@ -287,5 +289,15 @@ describe("Signal clone UI against live backend", () => {
     const chat = await screen.findByRole("region", { name: /Chat with Karan Singh/ });
     fireEvent.dragEnter(chat, { dataTransfer: { types: ["text/plain"], files: [] } });
     expect(screen.queryByTestId("drop-overlay")).toBeNull();
+  });
+
+  it("profile picture → Settings → Appearance → Theme → Dark switches the theme", async () => {
+    const user = await signInAs(/Aarav Sharma/);
+    await user.click(await screen.findByRole("button", { name: "Your profile" }));
+    await user.click(await screen.findByRole("button", { name: /^Appearance/ }));
+    await user.click(await screen.findByRole("button", { name: /^Theme/ }));
+    await user.click(await screen.findByRole("radio", { name: "Dark" }));
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe("dark"));
+    expect(screen.getByRole("button", { name: /^Theme/ })).toHaveTextContent("Dark");
   });
 });

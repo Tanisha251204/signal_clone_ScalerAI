@@ -11,6 +11,8 @@ export type ModalState =
   | { type: "newGroup" }
   | { type: "profile" }
   | { type: "settings" }
+  | { type: "preferences" }
+  | { type: "appearance" }
   | { type: "info"; conversationId: number }
   | { type: "connections" }
   | { type: "chatSettings"; conversationId: number }

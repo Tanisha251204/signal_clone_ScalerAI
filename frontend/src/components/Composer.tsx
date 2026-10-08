@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, FileText, Mic, Plus, Send, Sticker, X } from "lucide-react";
+import { ArrowUp, Camera, FileText, Mic, Plus, Smile, X } from "lucide-react";
 import { api, ApiError, assetUrl } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { fileSize } from "@/lib/format";
@@ -10,8 +10,7 @@ import { Spinner } from "./ui";
 
 const EMOJIS = "😀 😂 🥹 😍 😘 😎 🤔 😅 😭 😡 👍 👎 👏 🙌 🙏 💪 🔥 ✨ 🎉 ❤️ 💙 💔 👀 🤝 ☕ 🍕 🎂 🚀 ✅ ❌ 😴 🤯 🥳 😇 🙈 💯".split(" ");
 const drafts = new Map<number, string>();
-const iconBtn = "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-fg transition hover:bg-hover";
-const roundBtn = "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-hover hover:text-fg";
+const iconBtn = "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg transition hover:bg-hover";
 
 export function Composer({ conv, replyTo, onClearReply, focusSignal, incomingFile }: { conv: Conversation; replyTo: Message | null; onClearReply: () => void; focusSignal: number; incomingFile?: { file: File; n: number } | null }) {
   const { sendMessage, sendTyping, prefs, toast, openModal } = useApp();
@@ -76,7 +75,7 @@ export function Composer({ conv, replyTo, onClearReply, focusSignal, incomingFil
 
   const canSend = (!!text.trim() || !!attachment) && !uploading;
   return (
-    <div className="relative bg-chat px-2.5 pb-3 pt-2 md:px-4">
+    <div className="relative bg-chat px-3 pb-3 pt-2 md:px-4">
       {replyTo && (
         <div className="anim-pop mb-2 flex items-center gap-3 rounded-2xl border-l-4 border-accent bg-field px-3 py-2">
           <div className="min-w-0 flex-1 text-[13px]"><p className="font-medium text-accent">Replying to {replyTo.sender?.display_name ?? "message"}</p>
@@ -99,24 +98,24 @@ export function Composer({ conv, replyTo, onClearReply, focusSignal, incomingFil
           {EMOJIS.map((e) => <button key={e} onClick={() => { onChange(text + e); ta.current?.focus(); }} className="flex h-9 w-9 items-center justify-center rounded-lg text-xl hover:bg-hover">{e}</button>)}
         </div>
       )}
-      <div className="flex items-end gap-1.5">
+      <div className="flex items-end gap-2">
         <input ref={fileRef} type="file" hidden onChange={(e) => pick(e.target.files?.[0])} />
         <input ref={imageRef} type="file" accept="image/*" hidden onChange={(e) => pick(e.target.files?.[0])} />
-        <button aria-label="Attach file" onClick={() => fileRef.current?.click()} className={`mb-0.5 ${iconBtn}`}><Plus size={28} strokeWidth={1.6} /></button>
-        <div className="flex min-h-[44px] min-w-0 flex-1 items-end rounded-[24px] bg-field pl-4 pr-1.5">
-          <textarea ref={ta} rows={1} value={text} placeholder="Message" aria-label="Message" data-testid="composer"
+        <div className="flex min-h-[44px] min-w-0 flex-1 items-end rounded-[24px] bg-field pl-1.5 pr-1">
+          <button aria-label="Emoji" onClick={() => setEmoji((v) => !v)} className={`mb-[2px] ${iconBtn} ${emoji ? "bg-hover" : ""}`}><Smile size={26} strokeWidth={1.6} /></button>
+          <textarea ref={ta} rows={1} value={text} placeholder="Signal message" aria-label="Message" data-testid="composer"
             onChange={(e) => onChange(e.target.value)} onPaste={onPaste}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && (prefs.enterToSend || e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); } }}
-            className="max-h-[140px] min-w-0 flex-1 resize-none bg-transparent py-[11px] text-[17px] leading-[1.3] outline-none placeholder:text-muted focus-visible:outline-none" />
-          <button aria-label="Emoji" onClick={() => setEmoji((v) => !v)} className={`mb-[2px] ${roundBtn} ${emoji ? "bg-hover text-fg" : ""}`}><Sticker size={24} strokeWidth={1.6} /></button>
+            className="max-h-[140px] min-w-0 flex-1 resize-none bg-transparent px-1.5 py-[11px] text-[16px] leading-[1.3] outline-none placeholder:text-muted focus-visible:outline-none" />
+          {!text.trim() && (<>
+            <button aria-label="Camera" onClick={() => imageRef.current?.click()} className={`mb-[2px] ${iconBtn}`}><Camera size={26} strokeWidth={1.6} /></button>
+            <button aria-label="Voice message" onClick={() => openModal({ type: "comingSoon", feature: "Voice messages" })} className={`mb-[2px] ${iconBtn}`}><Mic size={26} strokeWidth={1.6} /></button>
+          </>)}
         </div>
         {canSend ? (
-          <button aria-label="Send message" data-testid="send" onClick={submit} className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-outb text-white transition hover:brightness-110 active:scale-95"><Send size={19} className="-ml-0.5 mt-0.5" /></button>
+          <button aria-label="Send message" data-testid="send" onClick={submit} className="mb-[2px] flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-outb text-white transition hover:brightness-110 active:scale-95"><ArrowUp size={24} strokeWidth={2.2} /></button>
         ) : (
-          <>
-            <button aria-label="Camera" onClick={() => imageRef.current?.click()} className={`mb-0.5 ${iconBtn}`}><Camera size={26} strokeWidth={1.6} /></button>
-            <button aria-label="Voice message" onClick={() => openModal({ type: "comingSoon", feature: "Voice messages" })} className={`mb-0.5 ${iconBtn}`}><Mic size={26} strokeWidth={1.6} /></button>
-          </>
+          <button aria-label="Attach file" onClick={() => fileRef.current?.click()} className="mb-[2px] flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-outb text-white transition hover:brightness-110 active:scale-95"><Plus size={26} strokeWidth={2} /></button>
         )}
       </div>
     </div>

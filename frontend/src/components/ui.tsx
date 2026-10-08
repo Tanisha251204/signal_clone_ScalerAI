@@ -53,7 +53,7 @@ export function Screen({ label, title, onBack, children, footer }: { label: stri
   return (
     <div className="anim-fade fixed inset-0 z-50 flex items-stretch justify-center bg-[var(--c-overlay)] sm:items-center sm:p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onBack(); }} role="dialog" aria-modal="true" aria-label={label}>
-      <div className="anim-slide sm:anim-pop flex h-full w-full flex-col overflow-hidden bg-bg sm:h-[min(100%,860px)] sm:max-w-md sm:rounded-2xl sm:shadow-[var(--c-shadow)]">
+      <div className="anim-slide sm:anim-pop flex h-full w-full flex-col overflow-hidden bg-chat sm:h-[min(100%,860px)] sm:max-w-md sm:rounded-2xl sm:shadow-[var(--c-shadow)]">
         <div className="flex h-14 shrink-0 items-center gap-2 px-2">
           <IconButton label="Back" onClick={onBack}><ArrowLeft size={24} /></IconButton>
           {title && <h2 className="text-[20px] font-medium">{title}</h2>}

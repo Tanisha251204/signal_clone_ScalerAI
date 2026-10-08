@@ -90,7 +90,7 @@ function BubbleImpl({ msg, conv, first, last, onReply, onJumpTo }: Props) {
               </a>
             )}
             {msg.body && (
-              <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.35]" style={{ overflowWrap: "anywhere" }}>
+              <p className="whitespace-pre-wrap break-words text-[16px] leading-[1.35]" style={{ overflowWrap: "anywhere" }}>
                 <Linkified text={msg.body} mine={mine} />
                 <span className="inline-block w-[72px] align-bottom" aria-hidden />
               </p>

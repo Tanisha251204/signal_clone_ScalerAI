@@ -13,11 +13,12 @@ import { Avatar, Button, ErrorState, IconButton, Spinner } from "./ui";
 type Tab = "chats" | "calls" | "stories";
 
 /** Stacked-cards icon used for Stories: a front card with a second card peeking out behind it (top-left). */
-function StoriesIcon({ size = 22, fill = "none", className }: { size?: number; fill?: string; className?: string }) {
+export function StoriesIcon({ size = 22, fill = "none", className, bgVar = "var(--c-nav)" }: { size?: number; fill?: string; className?: string; bgVar?: string }) {
+  // Back card is tilted (like the real Signal icon); front card sits upright on top of it.
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <rect x="8" y="7" width="12.5" height="14.5" rx="3" fill={fill} />
-      <path d="M16.5 3.5H7.2A3.2 3.2 0 0 0 4 6.7v9.1" />
+      <rect x="3.6" y="3.6" width="11.5" height="14.5" rx="3" transform="rotate(-14 9.3 10.9)" />
+      <rect x="8" y="6.5" width="12.5" height="15" rx="3" fill={fill === "none" ? bgVar : fill} />
     </svg>
   );
 }
@@ -98,16 +99,16 @@ function BottomNav({ tab, setTab, unread, stories }: { tab: Tab; setTab: (t: Tab
     { id: "stories", label: "Stories", icon: StoriesIcon, badge: stories, badgeClass: "bg-[#e5484d]" },
   ];
   return (
-    <nav className="flex border-t border-line bg-sidebar px-2 pb-2 pt-1.5" aria-label="Primary">
+    <nav className="flex bg-nav px-2 pb-3 pt-2.5" aria-label="Primary">
       {items.map(({ id, label, icon: Icon, badge, badgeClass }) => {
         const on = tab === id;
         return (
-          <button key={id} onClick={() => setTab(id)} aria-current={on ? "page" : undefined} className="flex flex-1 flex-col items-center gap-0.5 py-1">
-            <span className={`relative flex h-8 w-14 items-center justify-center ${on ? "text-fg" : "text-muted"}`}>
+          <button key={id} onClick={() => setTab(id)} aria-current={on ? "page" : undefined} className="flex flex-1 flex-col items-center gap-1">
+            <span className={`relative flex h-8 w-16 items-center justify-center rounded-full transition-colors ${on ? "bg-pill text-fg" : "text-fg"}`}>
               <Icon size={26} fill={on ? "currentColor" : "none"} />
-              {badge > 0 && <span className={`absolute right-0.5 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold leading-none text-white ${badgeClass}`}>{badge > 99 ? "99+" : badge}</span>}
+              {badge > 0 && <span className={`absolute -right-0.5 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold leading-none text-white ${badgeClass}`}>{badge > 99 ? "99+" : badge}</span>}
             </span>
-            <span className={`text-[12px] ${on ? "font-semibold text-fg" : "text-muted"}`}>{label}</span>
+            <span className={`text-[14px] ${on ? "text-fg" : "text-muted"}`}>{label}</span>
           </button>
         );
       })}
@@ -172,6 +173,7 @@ export function Sidebar() {
   const [results, setResults] = useState<SearchResults | null>(null);
   const [searching, setSearching] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread" | "groups">("all");
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -225,10 +227,10 @@ export function Sidebar() {
             <button aria-label="Close search" onClick={closeSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg"><X size={20} /></button>
           </div>
         ) : (<>
-          <button aria-label="Your profile" onClick={() => openModal({ type: "profile" })} className="rounded-full transition hover:opacity-80">
+          <button aria-label="Your profile" onClick={() => openModal({ type: "settings" })} className="rounded-full transition hover:opacity-80">
             {me && <Avatar name={me.display_name} color={me.avatar_color} url={me.avatar_url} size={36} />}
           </button>
-          <h1 className="min-w-0 flex-1 truncate pl-1 text-[22px] font-medium">{TITLES[tab]}</h1>
+          <h1 className="min-w-0 flex-1 truncate pl-3 text-[24px] font-normal">{TITLES[tab]}</h1>
           {tab === "chats" && <IconButton label="Search" onClick={openSearch}><Search size={22} /></IconButton>}
           <div className="relative" ref={menuRef}>
             <IconButton label="Menu" onClick={() => setMenu((v) => !v)} active={menu}><MoreVertical size={22} /></IconButton>
@@ -237,6 +239,7 @@ export function Sidebar() {
                 {[
                   { icon: UserRound, label: "Profile", run: () => openModal({ type: "profile" }) },
                   { icon: Users, label: "New group", run: () => openModal({ type: "newGroup" }) },
+                  { icon: Search, label: showFilters ? "Hide filters" : "Filter chats", run: () => { if (showFilters) setFilter("all"); setShowFilters((v) => !v); } },
                   { icon: Settings, label: "Settings", run: () => openModal({ type: "settings" }) },
                   { icon: isDark ? Sun : Moon, label: isDark ? "Light mode" : "Dark mode", run: () => setTheme(isDark ? "light" : "dark") },
                   { icon: LogOut, label: "Log out", run: () => signOut(), danger: true },
@@ -252,7 +255,7 @@ export function Sidebar() {
         </>)}
       </div>
 
-      {tab === "chats" && conversations.length > 0 && !searchingNow && (
+      {tab === "chats" && showFilters && conversations.length > 0 && !searchingNow && (
         <div className="flex gap-2 px-3 pb-2 pt-1" role="tablist" aria-label="Filter chats">
           {([["all", "All"], ["unread", unreadTotal ? `Unread · ${unreadTotal}` : "Unread"], ["groups", "Groups"]] as const).map(([k, label]) => (
             <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
@@ -267,7 +270,7 @@ export function Sidebar() {
       )}
 
       <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-28">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-28">
         {tab === "calls" ? (
           <div className="flex flex-col items-center gap-3 px-8 py-20 text-center text-muted">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent"><Phone size={28} /></span>
@@ -334,9 +337,9 @@ export function Sidebar() {
       {tab === "chats" && !searchOpen && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex flex-col items-end gap-3 px-4">
           <button aria-label="Camera" onClick={() => openModal({ type: "comingSoon", feature: "Camera" })}
-            className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-[14px] bg-btn2 text-btn2-fg shadow-[var(--c-shadow)] transition hover:brightness-110"><Camera size={20} /></button>
+            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-[20px] bg-fab text-fg shadow-[var(--c-shadow)] transition hover:brightness-110"><Camera size={26} strokeWidth={1.6} /></button>
           <button aria-label="New message (Alt+N)" onClick={() => openModal({ type: "newChat" })}
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-[18px] bg-btn text-btn-fg shadow-[var(--c-shadow)] transition hover:brightness-110 active:scale-95"><Pencil size={22} /></button>
+            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-[20px] bg-fab2 text-white shadow-[var(--c-shadow)] transition hover:brightness-110 active:scale-95"><Pencil size={24} strokeWidth={1.6} /></button>
           <NotificationBanner />
         </div>
       )}
