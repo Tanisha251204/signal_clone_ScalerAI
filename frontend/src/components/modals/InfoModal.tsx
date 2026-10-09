@@ -16,6 +16,7 @@ export function InfoModal({ conversationId }: { conversationId: number }) {
   const [name, setName] = useState("");
   const [adding, setAdding] = useState(false);
   const [contacts, setContacts] = useState<User[] | null>(null);
+  const [found, setFound] = useState<User[]>([]);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -23,6 +24,13 @@ export function InfoModal({ conversationId }: { conversationId: number }) {
 
   useEffect(() => { if (!conv) closeModal(); }, [conv, closeModal]);
   useEffect(() => { if (adding && !contacts) api.contacts().then(setContacts).catch(() => setContacts([])); }, [adding, contacts]);
+  // Typing 2+ characters also searches every Signal user, so people who aren't contacts can be added too.
+  useEffect(() => {
+    const t = q.trim();
+    if (!adding || t.length < 2) return;
+    const h = setTimeout(() => api.searchUsers(t).then(setFound).catch(() => setFound([])), 250);
+    return () => clearTimeout(h);
+  }, [adding, q]);
   if (!conv || !me) return null;
 
   const isGroup = conv.type === "group";
@@ -39,15 +47,17 @@ export function InfoModal({ conversationId }: { conversationId: number }) {
   const role = (m: Member, r: "admin" | "member") => run(`role${m.id}`, async () => { upsertConversation(await api.setRole(conv.id, m.id, r)); setMenuFor(null); });
   const leave = () => run("leave", async () => { await api.removeMember(conv.id, me.id); closeModal(); toast({ kind: "info", title: `You left "${conv.title}"` }); });
 
-  const candidates = (contacts ?? []).filter((c) => !conv.members.some((m) => m.id === c.id));
+  const shownFound = q.trim().length >= 2 ? found : [];
+  const pool = [...(contacts ?? []), ...shownFound.filter((f) => !(contacts ?? []).some((c) => c.id === f.id))];
+  const candidates = pool.filter((c) => !conv.members.some((m) => m.id === c.id));
   const peer = conv.peer;
 
   if (adding) {
     return (
       <Modal title="Add members" onClose={() => setAdding(false)} footer={<><Button variant="ghost" onClick={() => setAdding(false)}>Cancel</Button><Button disabled={!sel.size} loading={busy === "add"} onClick={addMembers}>Add {sel.size || ""}</Button></>}>
         <div className="px-4 pb-3">
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search contacts" aria-label="Search contacts" className="mb-2 h-10 w-full rounded-full bg-field px-4 text-sm outline-none focus:ring-2 focus:ring-accent" />
-          {contacts === null ? <div className="flex justify-center py-8"><Spinner /></div> : candidates.length === 0 ? <p className="py-8 text-center text-sm text-muted">All your contacts are already in this group.</p>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search contacts or people" aria-label="Search contacts" autoComplete="off" className="mb-2 h-10 w-full rounded-full bg-field px-4 text-sm outline-none focus:ring-2 focus:ring-accent" />
+          {contacts === null ? <div className="flex justify-center py-8"><Spinner /></div> : candidates.length === 0 && !q.trim() ? <p className="py-8 text-center text-sm text-muted">All your contacts are already in this group.</p>
             : <MemberPicker users={candidates} selected={sel} q={q} toggle={(u) => setSel((s) => { const n = new Set(s); if (n.has(u.id)) n.delete(u.id); else n.add(u.id); return n; })} />}
         </div>
       </Modal>

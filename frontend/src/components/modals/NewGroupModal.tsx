@@ -10,7 +10,7 @@ import { Avatar, Button, Modal, Spinner } from "../ui";
 export function MemberPicker({ users, selected, toggle, q }: { users: User[]; selected: Set<number>; toggle: (u: User) => void; q: string }) {
   const t = q.trim().toLowerCase();
   const list = users.filter((u) => !t || u.display_name.toLowerCase().includes(t) || (u.phone ?? "").includes(t) || (u.username ?? "").includes(t));
-  if (!list.length) return <p className="py-8 text-center text-sm text-muted">No contacts found</p>;
+  if (!list.length) return <p className="py-8 text-center text-sm text-muted">No people found</p>;
   return <>{list.map((u) => (
     <button key={u.id} onClick={() => toggle(u)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-hover" role="checkbox" aria-checked={selected.has(u.id)}>
       <Avatar name={u.display_name} color={u.avatar_color} url={u.avatar_url} size={40} />
