@@ -27,6 +27,55 @@ messages and dark mode. Built for the Scaler SDE Fullstack assignment.
 | Vikram Rao / Ananya Das | `+919810000007` / `+919810000008` | not in Aarav's contacts — find them via *New message → search* |
 
 ### Screenshots
+**1. Onboarding flow** (mirrors Signal's): welcome → permissions → phone number (+ confirm dialog) → 6-digit code →
+*new users:* PIN → profile (first/last name) → app. Returning users skip straight in after the code. The PIN is a UI-only
+placeholder (not stored). Bottom navigation: **Chats** (real), **Calls** and **Stories** (mocked placeholders).
+
+<table>
+  <tr>
+    <td><img width="200" src="https://github.com/user-attachments/assets/9d55b754-33ca-4d7d-a618-efdefed259b5" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/b9e5f4a3-05f4-42b0-9873-43be738875fe" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/b0e77809-d68c-42e4-a517-6d6b87f3407e" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/578f90b3-89a4-47c3-8904-32a5458e7533" /></td>
+  </tr>
+  <tr>
+    <td><img width="200" src="https://github.com/user-attachments/assets/8a07a6d4-1860-402a-a37d-b9a078e52a60" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/add3dee9-29ce-473b-b229-3f93d2118e66" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/a7b09dff-2111-4ccd-8dce-441e6fb67c3a" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/32534cb7-c068-4305-9437-d395748ddf9b" /></td>
+  </tr>
+</table>
+
+**2. Try real-time:** open the app in two browsers (or one normal + one private window), sign in as Aarav and Priya,
+open their chat and watch messages, typing indicators, ticks and online status update live.
+
+**Real-time messaging: Aarav Sharma sends messages to Priya Patel**
+
+<table>
+  <tr>
+    <td><img width="200" src="https://github.com/user-attachments/assets/45eba675-b0ba-494c-aaa0-6292e209f0af" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/09804da9-02ab-41da-a112-18d6eb10f31f" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/c36255da-0563-40ed-ad33-4d7b77843a0c" /></td>
+  </tr>
+</table>
+
+**The same conversation at Priya Patel's end**
+
+<table>
+  <tr>
+    <td><img width="200" src="https://github.com/user-attachments/assets/78ae2bc6-3555-45f2-b401-03a1d1c05c2c" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/c3c2b8a1-5960-4cdd-9070-4a513393bf75" /></td>
+    <td><img width="200" src="https://github.com/user-attachments/assets/9d4915b5-03ed-4f11-92e8-564a8c98df22" /></td>
+  </tr>
+</table>
+
+
+
+
+
+
+
+
 
 <!--
   ADD SCREENSHOTS HERE
@@ -37,13 +86,6 @@ messages and dark mode. Built for the Scaler SDE Fullstack assignment.
   |---|---|---|---|
   | ![](docs/screenshots/welcome.png) | ![](docs/screenshots/chat-list.png) | ![](docs/screenshots/chat.png) | ![](docs/screenshots/group.png) |
 -->
-
-**Onboarding flow** (mirrors Signal's): welcome → permissions → phone number (+ confirm dialog) → 6-digit code →
-*new users:* PIN → profile (first/last name) → app. Returning users skip straight in after the code. The PIN is a UI-only
-placeholder (not stored). Bottom navigation: **Chats** (real), **Calls** and **Stories** (mocked placeholders).
-
-**Try real-time:** open the app in two browsers (or one normal + one private window), sign in as Aarav and Priya,
-open their chat and watch messages, typing indicators, ticks and online status update live.
 
 ## Features
 
