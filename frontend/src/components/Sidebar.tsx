@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { listTime, previewOf } from "@/lib/format";
 import type { Conversation, SearchResults } from "@/lib/types";
 import { DEMO_STORIES, loadSeen, saveSeen, type Story } from "@/lib/stories";
+import { ArchiveIcon, BellSleepIcon, ChatCheckIcon, FilterIcon, GroupIcon, SettingsIcon } from "./signalIcons";
 import { ConversationItem } from "./ConversationItem";
 import { RowMenu } from "./RowMenu";
 import { Avatar, Button, ErrorState, IconButton, Spinner } from "./ui";
@@ -235,15 +236,18 @@ export function Sidebar() {
           <div className="relative" ref={menuRef}>
             <IconButton label="Menu" onClick={() => setMenu((v) => !v)} active={menu}><MoreVertical size={22} /></IconButton>
             {menu && (
-              <div className="anim-pop absolute right-0 top-11 z-30 w-[260px] overflow-hidden rounded-[22px] bg-sheet py-2 shadow-[var(--c-shadow)]" role="menu">
+              <div className="anim-pop absolute right-0 top-11 z-30 w-[290px] overflow-hidden rounded-[22px] bg-sheet py-2 shadow-[var(--c-shadow)]" role="menu">
                 {[
-                  { label: "Mark all as read", run: () => { markAllRead(); toast({ kind: "info", title: "All chats marked as read" }); } },
-                  { label: "Archived chats", run: () => openModal({ type: "archived" }) },
-                  { label: "Settings", run: () => openModal({ type: "settings" }) },
-                  { label: "Linked devices", run: () => openModal({ type: "comingSoon", feature: "Linked devices" }) },
-                  { label: "Help", run: () => openModal({ type: "comingSoon", feature: "Help" }) },
+                  { label: "New group", icon: <GroupIcon />, run: () => openModal({ type: "newGroup" }) },
+                  { label: "Mark all read", icon: <ChatCheckIcon />, run: () => { markAllRead(); toast({ kind: "info", title: "All chats marked as read" }); } },
+                  { label: "Filter unread chats", icon: <FilterIcon />, run: () => { openSearch(); setFilter("unread"); } },
+                  { label: "Notification profile", icon: <BellSleepIcon />, run: () => openModal({ type: "comingSoon", feature: "Notification profiles" }) },
+                  { label: "Archived chats", icon: <ArchiveIcon />, run: () => openModal({ type: "archived" }) },
+                  { label: "Settings", icon: <SettingsIcon />, run: () => openModal({ type: "settings" }) },
                 ].map((it) => (
-                  <button key={it.label} role="menuitem" onClick={() => { setMenu(false); it.run(); }} className="block w-full px-6 py-[15px] text-left text-[17px] hover:bg-hover">{it.label}</button>
+                  <button key={it.label} role="menuitem" onClick={() => { setMenu(false); it.run(); }} className="flex w-full items-center gap-4 px-5 py-[14px] text-left text-[17px] hover:bg-hover">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center text-fg">{it.icon}</span>{it.label}
+                  </button>
                 ))}
               </div>
             )}

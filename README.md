@@ -11,7 +11,7 @@ messages and dark mode. Built for the Scaler SDE Fullstack assignment.
 | | |
 |---|---|
 | Frontend | https://signal-clone-scaler-ai.vercel.app |
-| Backend API | https://signal-clone-api-3vcd.onrender.com (Swagger docs at /docs) |
+| Backend API | https://signal-clone-api-3vcd.onrender.com (`/docs` for Swagger) |
 | OTP for every account | **`123456`** |
 
 **Seeded demo accounts** (tap one on the login screen, then enter `123456`):
@@ -53,11 +53,12 @@ open their chat and watch messages, typing indicators, ticks and online status u
 - Add contacts by searching, or by phone number / username lookup; online & last-seen presence (real, via WebSocket)
 - 1:1 chat in real time: timestamps, day separators, `sending → sent → delivered → read` receipts (Signal-style circle ticks), typing indicators, optimistic send with retry, infinite scroll history, unread divider
 - Groups: create with name + members, group messages with sender names/avatars, member list, add/remove members, promote/demote admins, rename, leave. **Admin permissions are enforced on the backend (403)**
-- Signal experience: sidebar + chat pane, bubble clustering, modals, toasts, settings (appearance/privacy/notifications/linked devices), empty/loading/error states, mobile layout
+- Signal experience: sidebar + chat pane, bubble clustering, modals, toasts, empty/loading/error states, mobile layout
+- Signal-for-Android navigation: profile → Settings (Account, Appearance with Language and Theme, Chats, Notifications, Privacy, Data and storage, Help, Invite friends), editable Profile (name, About, username) and Edit photo (camera, gallery, text avatar, default avatars), chat-list menu (New group, Mark all read, Filter unread chats, Notification profile, Archived chats, Settings), Signal's own vector icons
 
 **Bonus (all implemented):** dark mode (system/light/dark) · message reactions · reply-to / quoted messages · attachments (images/files, 10 MB) · disappearing messages (per-chat timer, functional server-side expiry) · keyboard shortcuts · delete-for-everyone · responsive layout
 
-**Placeholders ("Coming soon"):** voice/video calls, voice messages, stories, linked devices, screen lock
+**Placeholders ("Coming soon"):** voice/video calls, voice messages, stories, linked devices, screen lock, badges, payments
 
 ## Tech stack
 
@@ -65,7 +66,7 @@ open their chat and watch messages, typing indicators, ticks and online status u
 |---|---|
 | Frontend | Next.js 16 (App Router) + TypeScript, Tailwind CSS v4, lucide-react icons, Inter font |
 | Backend | Python, FastAPI, SQLAlchemy 2, Uvicorn |
-| Database | SQLite (WAL mode, foreign keys on) |
+| Database | SQLite by default (WAL mode, foreign keys on). The same SQLAlchemy models also run on PostgreSQL, used in production (Neon) so data survives restarts on free hosting |
 | Real-time | Native WebSockets (FastAPI/Starlette) |
 | Tests | pytest (API + WS), live-server smoke test, Vitest + Testing Library (UI against a live backend) |
 
@@ -79,7 +80,7 @@ open their chat and watch messages, typing indicators, ticks and online status u
 │  reconnect + catch-up  │   WebSocket  /ws?token=…       │           search realtime    │
 └────────────────────────┘   (server push + typing/read)  │  services.py  domain logic   │
                                                           │  ws_manager.py  live sockets │
-                                                          │  SQLAlchemy ▶ SQLite         │
+                                                          │  SQLAlchemy ▶ SQLite/Postgres│
                                                           └──────────────────────────────┘
 ```
 
@@ -92,12 +93,12 @@ open their chat and watch messages, typing indicators, ticks and online status u
 - **Delivered** is set instantly if the recipient has a live socket, otherwise when they next connect (the sender is notified).
   **Read** is set when the recipient opens/views the chat.
 - **Reconnect safety:** the client reconnects with exponential backoff and, on every `ready`, refetches conversations and the
-  active chat, so nothing is lost while offline. Persisted history is always served from SQLite.
+  active chat, so nothing is lost while offline. Persisted history is always served from the database.
 - **Groups & membership:** one `conversations` table (`type = direct|group`) + `conversation_members` (role `admin|member`).
   Direct chats use a unique `direct_key` (`minId:maxId`) so there can only ever be one DM per pair. New members only see
   history from their `joined_at`. A group can never be left without an admin.
 - **Disappearing messages:** `expires_at` is set at send time from the chat's timer; a background task deletes expired rows
-  every 2 s and pushes `message.expired`; queries also filter expired rows so nothing leaks between sweeps.
+  every 2 s (only while some message is waiting to expire, so an idle app lets a serverless database sleep) and pushes `message.expired`; queries also filter expired rows so nothing leaks between sweeps.
 
 ## Folder structure
 
@@ -138,7 +139,7 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 uvicorn app.main:app --reload --port 8000
 ```
-The SQLite file (`backend/signal.db`) is created and seeded automatically on first start. Delete it to reset the demo data.
+The SQLite file (`backend/signal.db`) is created and seeded automatically on first start. Delete it to reset the demo data. To use PostgreSQL instead, set `DATABASE_URL` (see below); tables are created automatically.
 
 **Frontend**
 ```powershell
@@ -155,7 +156,7 @@ npm run dev                       # http://localhost:3000
 | `NEXT_PUBLIC_API_URL` | frontend | `http://localhost:8000` | Backend base URL (WebSocket URL is derived: `http→ws`, `https→wss`) |
 | `NEXT_PUBLIC_WS_URL` | frontend | derived | Optional explicit WebSocket base URL |
 | `CORS_ORIGINS` | backend | `*` | Comma-separated allowed origins (auth is bearer-token, no cookies) |
-| `DATABASE_URL` | backend | `sqlite:///backend/signal.db` | SQLAlchemy URL |
+| `DATABASE_URL` | backend | `sqlite:///backend/signal.db` | SQLAlchemy URL. Production uses a Neon PostgreSQL URL (`postgresql://…?sslmode=require`) |
 | `UPLOAD_DIR` | backend | `backend/uploads` | Where attachments are stored |
 | `FIXED_OTP` | backend | `123456` | The mocked verification code |
 | `SEED_DEMO_DATA` | backend | `1` | Seed demo users/chats on an empty DB |
@@ -163,11 +164,11 @@ npm run dev                       # http://localhost:3000
 ## Testing
 
 ```bash
-cd backend && pytest                       # 14 API + WebSocket tests (in-process)
+cd backend && pytest                       # 20 API + WebSocket tests (in-process)
 cd frontend && npm run typecheck && npm run lint
 python scripts/run_integration.py          # boots a fresh backend, then runs:
                                            #   • 26-check live smoke test (real HTTP + real WebSockets)
-                                           #   • 6 UI integration tests (real React app ↔ live backend)
+                                           #   • 19 UI integration tests (real React app ↔ live backend)
 ```
 The suites cover: register → OTP → login → refresh → logout; A → B real-time message, persistence, sent → delivered → read,
 typing indicators; offline delivery upgrading on reconnect; group create / add / send / remove with admin enforcement;
@@ -231,7 +232,7 @@ Connect to `/ws?token=<session token>` (invalid token → close code `4401`).
 
 ## Deployment
 
-SQLite + WebSockets need a long-lived server process, so the backend is **not** a serverless function. Recommended split:
+WebSockets need a long-lived server process, so the backend is **not** a serverless function. Recommended split:
 
 1. **Backend → Render** (supports WebSockets). Push the repo to GitHub, then *New → Blueprint* and select the repo
    (`render.yaml` is picked up). Set `CORS_ORIGINS` to your frontend URL once known. Verify `https://<api>.onrender.com/api/health`.
@@ -239,15 +240,21 @@ SQLite + WebSockets need a long-lived server process, so the backend is **not** 
    `NEXT_PUBLIC_API_URL=https://<api>.onrender.com`, deploy. (`https` automatically becomes `wss` for the socket.)
 3. Update the backend's `CORS_ORIGINS` to the Vercel URL and redeploy/restart the API.
 
-Notes: on Render's free plan the service sleeps after ~15 min idle (first request takes ~30–60 s) and the disk is
-ephemeral, so the DB/uploads reset on restart and the demo seed is re-created. Attach a persistent disk (see comments in
-`render.yaml`) for durable data.
+3. **Database → Neon (free PostgreSQL), optional but recommended on free hosting.** Create a project in the **same region as the
+   backend** (cross-region queries make every screen slow), copy the pooled connection string and add it to Render as
+   `DATABASE_URL` (never commit it). Without it the app falls back to SQLite, which Render's free plan wipes on each restart.
+4. **Keep-alive.** Render's free plan sleeps after ~15 min idle (first request takes ~30–60 s). A free uptime monitor
+   (UptimeRobot, HEAD/GET every 5 min on `/api/health`) keeps it awake. The health route does not touch the database, so Neon can still sleep.
+
+Uploaded files (avatars, attachments) live on the backend's local disk and are still lost on restart on the free plan;
+object storage (e.g. Cloudflare R2) or a persistent disk would fix that.
 
 ## Assumptions
 
 - Phone numbers must include a country code; usernames are 3–24 chars `[a-z0-9_.]`.
 - The OTP is fixed (`123456`) and shown in the UI — verification is mocked per the assignment.
-- Sessions are opaque random tokens stored in SQLite (30-day expiry) and kept in `localStorage`.
+- The assignment names SQLite: it is the default and what the tests use. Production runs the same models on PostgreSQL purely so data persists on free hosting.
+- Sessions are opaque random tokens stored in the database (30-day expiry) and kept in `localStorage`.
 - "Online" means at least one open WebSocket; "last seen" is the last disconnect.
 - Group members only see messages from when they joined.
 
@@ -262,4 +269,7 @@ ephemeral, so the DB/uploads reset on restart and the demo seed is re-created. A
 - Any signed-in user can look up any other user by name, number or username (no privacy/discoverability settings), and the WebSocket token travels in the query string (browsers cannot set headers on WebSockets) — both acceptable for a demo, not for production.
 - No rate limiting or OTP attempt limits (the OTP is fixed by design); real SMS verification would plug in at `/api/auth/request-otp` + `/login`.
 - Conversation list builds each row with several queries (N+1); fine for demo-sized data, would need batching/denormalised `last_message_id` at scale.
-- Uploaded files and (on the free Render plan) all data are lost on restart — see Deployment.
+- Uploaded files are lost on restart on the free Render plan — see Deployment.
+- Archived chats, the Language choice and the Get-started cards are stored in the browser (localStorage), not the database, so they don't follow you across devices. The Language setting saves the choice but the interface is English only.
+- Delete Account asks for the phone number and signs you out but does not erase server data.
+- Settings toggles (notifications, privacy, etc.) are saved in the browser as preferences; most are placeholders and do not change server behaviour.

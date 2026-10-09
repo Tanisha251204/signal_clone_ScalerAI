@@ -347,12 +347,16 @@ describe("Signal clone UI against live backend", () => {
     expect(editor.getByRole("button", { name: "Text" })).toBeInTheDocument();
   });
 
-  it("chat list menu: Mark all as read, Archived chats, Settings, Linked devices, Help; archiving hides a chat", async () => {
+  it("chat list menu: New group, Mark all read, Filter unread chats, Notification profile, Archived chats, Settings; archiving hides a chat", async () => {
     const user = await signInAs(/Aarav Sharma/);
     await screen.findAllByTestId("conversation-item");
     await user.click(screen.getByRole("button", { name: "Menu" }));
-    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["Mark all as read", "Archived chats", "Settings", "Linked devices", "Help"]);
-    await user.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["New group", "Mark all read", "Filter unread chats", "Notification profile", "Archived chats", "Settings"]);
+    await user.click(screen.getByRole("menuitem", { name: "Filter unread chats" }));
+    expect(await screen.findByRole("tab", { name: /^Unread/ })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("button", { name: "Close search" }));
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("menuitem", { name: "Mark all read" }));
     await waitFor(() => expect(screen.queryAllByTestId("unread-badge")).toHaveLength(0));
     const before = screen.getAllByTestId("conversation-item").length;
     fireEvent.contextMenu(screen.getAllByTestId("conversation-item")[0]);
