@@ -26,17 +26,17 @@ messages and dark mode. Built for the Scaler SDE Fullstack assignment.
 | Meera Nair | `+919810000006` | admin of "Family" |
 | Vikram Rao / Ananya Das | `+919810000007` / `+919810000008` | not in Aarav's contacts — find them via *New message → search* |
 
-### Screenshots (real headless-Chromium captures of this build)
+### Screenshots
 
-| Welcome | Verification code | Chat list | Conversation |
-|---|---|---|---|
-| ![](docs/screenshots/01-welcome.png) | ![](docs/screenshots/02-verification-code.png) | ![](docs/screenshots/03-chat-list.png) | ![](docs/screenshots/04-conversation.png) |
+<!--
+  ADD SCREENSHOTS HERE
+  1. Put your image files in docs/screenshots/ (delete the old ones there first).
+  2. Add them below, one table row per 3-4 images, for example:
 
-| Group chat | Light mode | Get started cards | "Name not verified" sheet |
-|---|---|---|---|
-| ![](docs/screenshots/05-group.png) | ![](docs/screenshots/06-light-mode.png) | ![](docs/screenshots/08-get-started.png) | ![](docs/screenshots/09-connections.png) |
-
-![Desktop two-pane layout](docs/screenshots/07-desktop.png)
+  | Welcome | Chat list | Conversation | Group chat |
+  |---|---|---|---|
+  | ![](docs/screenshots/welcome.png) | ![](docs/screenshots/chat-list.png) | ![](docs/screenshots/chat.png) | ![](docs/screenshots/group.png) |
+-->
 
 **Onboarding flow** (mirrors Signal's): welcome → permissions → phone number (+ confirm dialog) → 6-digit code →
 *new users:* PIN → profile (first/last name) → app. Returning users skip straight in after the code. The PIN is a UI-only
