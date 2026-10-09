@@ -299,6 +299,10 @@ object storage (e.g. Cloudflare R2) or a persistent disk would fix that.
 - Sessions are opaque random tokens stored in the database (30-day expiry) and kept in `localStorage`.
 - "Online" means at least one open WebSocket; "last seen" is the last disconnect.
 - Group members only see messages from when they joined.
+- **Online / last seen:** the assignment asks for online and last-seen indicators, but real Signal deliberately shows
+  neither (a privacy choice). To satisfy the requirement without changing Signal's layout, presence is shown subtly:
+  a small green dot on the avatar while a person has the app open, and (in the chat header) a muted
+  "Online" / "Last seen …" line. "Online" means at least one open WebSocket; "last seen" is the last disconnect.
 
 ## Limitations
 
