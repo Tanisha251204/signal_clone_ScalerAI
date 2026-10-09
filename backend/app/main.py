@@ -13,7 +13,7 @@ from .config import CORS_ORIGINS, SEED_DEMO_DATA, UPLOAD_DIR
 from .database import Base, SessionLocal, engine
 from .routers import auth, conversations, realtime, search, users
 from .seed import seed_if_empty
-from .services import member_ids, push_conversation, utcnow
+from .services import expiry_watch, member_ids, push_conversation, utcnow
 from .ws_manager import manager
 
 log = logging.getLogger("signal.expiry")
@@ -23,10 +23,14 @@ async def expire_messages_loop() -> None:
     """Disappearing messages: delete expired rows and tell the members."""
     while True:
         await asyncio.sleep(2)
+        if not expiry_watch["pending"]:
+            continue  # nothing can expire -> don't wake the database
         try:
             with SessionLocal() as db:
                 expired = db.scalars(select(M.Message).where(M.Message.expires_at.is_not(None), M.Message.expires_at <= utcnow())).all()
                 if not expired:
+                    # stop polling once no message is left waiting to expire
+                    expiry_watch["pending"] = db.scalar(select(M.Message.id).where(M.Message.expires_at.is_not(None)).limit(1)) is not None
                     continue
                 by_conv: dict[int, list[int]] = defaultdict(list)
                 for m in expired:

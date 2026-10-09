@@ -11,6 +11,10 @@ from .ws_manager import manager
 
 utcnow = M.utcnow
 
+# True while some message may still be waiting to expire. The expiry sweeper only touches the
+# database when this is set, so an idle app lets a serverless database (e.g. Neon) go to sleep.
+expiry_watch = {"pending": True}
+
 
 def iso(dt: datetime | None) -> str | None:
     return dt.isoformat(timespec="milliseconds") + "Z" if dt else None
@@ -176,6 +180,8 @@ async def create_message(
         created_at=t, expires_at=t + timedelta(seconds=conv.disappear_after) if conv.disappear_after else None,
         **({f"attachment_{k}": v for k, v in attachment.items()} if attachment else {}),
     )
+    if m.expires_at:
+        expiry_watch["pending"] = True
     db.add(m)
     db.flush()
     if kind == "text":
